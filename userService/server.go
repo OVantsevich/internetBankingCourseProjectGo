@@ -3,9 +3,9 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"github.com/OVantsevich/internetBankingCourseProjectGo/userService/internal/domain"
-	"github.com/OVantsevich/internetBankingCourseProjectGo/userService/internal/repository"
-	"github.com/OVantsevich/internetBankingCourseProjectGo/userService/internal/services"
+	"github.com/OVantsevich/internetBankingCourseProjectGo/userService/domain"
+	"github.com/OVantsevich/internetBankingCourseProjectGo/userService/repository"
+	"github.com/OVantsevich/internetBankingCourseProjectGo/userService/services"
 	"github.com/go-kit/kit/endpoint"
 	httptransport "github.com/go-kit/kit/transport/http"
 	"github.com/jackc/pgx/v4/pgxpool"

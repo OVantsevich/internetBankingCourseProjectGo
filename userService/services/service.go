@@ -1,8 +1,8 @@
 package services
 
 import (
-	"github.com/OVantsevich/internetBankingCourseProjectGo/userService/internal/domain"
-	"github.com/OVantsevich/internetBankingCourseProjectGo/userService/internal/repository"
+	"github.com/OVantsevich/internetBankingCourseProjectGo/userService/domain"
+	"github.com/OVantsevich/internetBankingCourseProjectGo/userService/repository"
 )
 
 type Service struct {

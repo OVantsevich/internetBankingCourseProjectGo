@@ -2,7 +2,7 @@ package repository
 
 import (
 	"context"
-	"github.com/OVantsevich/internetBankingCourseProjectGo/userService/internal/domain"
+	"github.com/OVantsevich/internetBankingCourseProjectGo/userService/domain"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/labstack/gommon/log"
 	passwordvalidator "github.com/wagslane/go-password-validator"
