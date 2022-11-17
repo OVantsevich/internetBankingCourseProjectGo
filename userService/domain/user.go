@@ -12,3 +12,22 @@ type User struct {
 	UserLogin        string    `json:"user_login" sql:"type:varchar(100);not null"`
 	UserPassword     string    `json:"user_password" sql:"type:varchar(200);not null"`
 }
+
+func (dest *User) CompareAndSet(src *User) {
+
+	if dest.UserName != src.UserName {
+		dest.UserName = src.UserName
+	}
+	if dest.Surname != src.Surname {
+		dest.Surname = src.Surname
+	}
+	if dest.IsDeleted != src.IsDeleted {
+		dest.IsDeleted = src.IsDeleted
+	}
+	if dest.UserLogin != src.UserLogin {
+		dest.UserLogin = src.UserLogin
+	}
+	if dest.UserPassword != src.UserPassword {
+		dest.UserPassword = src.UserPassword
+	}
+}
