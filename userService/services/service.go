@@ -27,7 +27,7 @@ func (se *Service) CreateUser(user *domain.User) (string, error) {
 	}
 
 	if len(user.UserLogin) < 4 || len(user.UserLogin) > 15 {
-		return "login should from 4 to 15 symbols", fmt.Errorf("database error with create user: login should from 4 to 15 symbols")
+		return "login should be Greater than 3 and less than 16 symbols", fmt.Errorf("database error with create user: login should from 4 to 15 symbols")
 	}
 
 	return se.rps.CreateUser(user)

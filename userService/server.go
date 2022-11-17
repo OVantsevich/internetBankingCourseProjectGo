@@ -13,23 +13,15 @@ import (
 	"net/http"
 )
 
-type Error struct {
-	Message string `json:"Error message"`
-}
-
-type Message struct {
-	Message string
-}
-
 func RegisterUserEndpoint(svc services.Service) endpoint.Endpoint {
 	return func(_ context.Context, request interface{}) (interface{}, error) {
 		req := request.(domain.User)
 
 		v, err := svc.CreateUser(&req)
 		if err != nil {
-			return Error{err.Error()}, nil
+			return v, nil
 		}
-		return Message{v}, nil
+		return v, nil
 	}
 }
 
@@ -39,14 +31,14 @@ func SignInEndpoint(svc services.Service) endpoint.Endpoint {
 
 		v, err := svc.SignIn(req.UserLogin, req.UserPassword)
 		if err != nil {
-			return Error{err.Error()}, nil
+			return v, nil
 		}
-		return Message{v}, nil
+		return v, nil
 	}
 }
 
 func main() {
-	databaseUrl := "postgres://postgres:postgres@localhost:5432/courseProject"
+	databaseUrl := "postgres://postgres:postgres@host.docker.internal:5432/userService"
 	dbPool, err := pgxpool.Connect(context.Background(), databaseUrl)
 	if err != nil {
 		log.Errorf("database connection error: %v", err)
