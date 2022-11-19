@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"fmt"
 	"github.com/OVantsevich/internetBankingCourseProjectGo/userService/domain"
 	"github.com/OVantsevich/internetBankingCourseProjectGo/userService/repository"
@@ -15,11 +16,11 @@ func NewService(pool repository.UserRepository) *Service {
 	return &Service{rps: pool}
 }
 
-func (se *Service) SignIn(login, password string) (string, error) {
-	return se.rps.SignIn(login, password)
+func (s *Service) SignIn(ctx context.Context, user *domain.User) (string, error) {
+	return s.rps.SignIn(ctx, user)
 }
 
-func (se *Service) CreateUser(user *domain.User) (string, error) {
+func (s *Service) CreateUser(ctx context.Context, user *domain.User) (string, error) {
 
 	err := passwordvalidator.Validate(user.UserPassword, 50)
 	if err != nil {
@@ -30,5 +31,5 @@ func (se *Service) CreateUser(user *domain.User) (string, error) {
 		return "login should be Greater than 3 and less than 16 symbols", fmt.Errorf("database error with create user: login should from 4 to 15 symbols")
 	}
 
-	return se.rps.CreateUser(user)
+	return s.rps.CreateUser(ctx, user)
 }

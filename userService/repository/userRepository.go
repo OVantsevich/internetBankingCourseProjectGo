@@ -13,9 +13,9 @@ type UserRepository struct {
 	Pool *pgxpool.Pool
 }
 
-func (repos *UserRepository) CreateUser(user *domain.User) (string, error) {
+func (repos *UserRepository) CreateUser(ctx context.Context, user *domain.User) (string, error) {
 
-	rows, err := repos.Pool.Query(context.Background(), "select user_login from users where user_login=$1", user.UserLogin)
+	rows, err := repos.Pool.Query(ctx, "select user_login from users where user_login=$1", user.UserLogin)
 	if err != nil {
 		log.Errorf("database error with create user: %v", err)
 		return "something went wrong", err
@@ -25,7 +25,7 @@ func (repos *UserRepository) CreateUser(user *domain.User) (string, error) {
 			"user with this login already exists")
 	}
 
-	_, err = repos.Pool.Exec(context.Background(), "insert into users(user_name, surname, user_login, user_password) "+
+	_, err = repos.Pool.Exec(ctx, "insert into users(user_name, surname, user_login, user_password) "+
 		"values($1, $2, $3, $4)", user.UserName, user.Surname, user.UserLogin, user.UserPassword)
 	if err != nil {
 		log.Errorf("database error with create user: %v", err)
@@ -35,10 +35,10 @@ func (repos *UserRepository) CreateUser(user *domain.User) (string, error) {
 	return "Greetings, " + user.UserLogin, nil
 }
 
-func (repos *UserRepository) SignIn(userLogin, userPassword string) (string, error) {
+func (repos *UserRepository) SignIn(ctx context.Context, user *domain.User) (string, error) {
 
 	var password string
-	rows, err := repos.Pool.Query(context.Background(), "select user_password from users  where user_login=$1", userLogin)
+	rows, err := repos.Pool.Query(ctx, "select user_password from users  where user_login=$1", user.UserLogin)
 	if err != nil {
 		log.Errorf("database error with create user: %v", err)
 		return "something went wrong", err
@@ -52,10 +52,10 @@ func (repos *UserRepository) SignIn(userLogin, userPassword string) (string, err
 		log.Errorf("database error with create user: %v", err)
 		return "something went wrong", err
 	}
-	if password != userPassword {
-		return "wrong password" + userPassword, fmt.Errorf("wrong password")
+	if password != user.UserPassword {
+		return "wrong password", fmt.Errorf("wrong password")
 	}
-	return "Welcome, " + userLogin, nil
+	return "Welcome, " + user.UserLogin, nil
 }
 
 func (repos *UserRepository) UpdateUser(user *domain.User) (string, error) {
