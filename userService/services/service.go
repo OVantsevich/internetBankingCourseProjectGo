@@ -12,6 +12,10 @@ type Service struct {
 	rps repository.UserRepository
 }
 
+func (s *Service) Close() {
+	s.rps.Close()
+}
+
 func NewService(pool repository.UserRepository) *Service {
 	return &Service{rps: pool}
 }

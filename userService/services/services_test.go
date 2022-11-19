@@ -75,25 +75,27 @@ func TestCreate(t *testing.T) {
 			UserPassword: `oleg2310`,
 		},
 	}
-	rps := NewService(repository.UserRepository{Pool: Pool()})
+
+	var ctx = context.Background()
+	rps := NewService(repository.UserRepository{})
 	for _, u := range testValidData {
 
-		_, err := rps.rps.Pool.Exec(context.Background(), "delete from users where user_login=$1 ", u.UserLogin)
+		_, err := rps.rps.Pool(ctx, "").Exec(context.Background(), "delete from users where user_login=$1 ", u.UserLogin)
 		require.NoError(t, err, "create error")
 
-		_, err = rps.CreateUser(&u)
+		_, err = rps.CreateUser(ctx, &u)
 		require.NoError(t, err, "create error")
 
-		_, err = rps.SignIn(u.UserLogin, u.UserPassword)
+		_, err = rps.SignIn(ctx, &u)
 		require.NoError(t, err, "create error")
 
 	}
 	for _, u := range testNoValidData {
 
-		_, err := rps.CreateUser(&u)
+		_, err := rps.CreateUser(ctx, &u)
 		require.Error(t, err, "create error")
 
-		_, err = rps.rps.Pool.Exec(context.Background(), "delete from users where user_login=$1 ", u.UserLogin)
+		_, err = rps.rps.Pool(ctx, "").Exec(ctx, "delete from users where user_login=$1 ", u.UserLogin)
 		require.NoError(t, err, "create error")
 	}
 }
@@ -130,27 +132,28 @@ func TestSignIn(t *testing.T) {
 		},
 	}
 
-	rps := NewService(repository.UserRepository{Pool: Pool()})
+	var ctx = context.Background()
+	rps := NewService(repository.UserRepository{})
 	for _, u := range testValidData {
-		_, err := rps.rps.Pool.Exec(context.Background(), "delete from users where user_login=$1 ", u.UserLogin)
+		_, err := rps.rps.Pool(ctx, "").Exec(context.Background(), "delete from users where user_login=$1 ", u.UserLogin)
 		require.NoError(t, err, "create error")
 
-		_, err = rps.CreateUser(&u)
+		_, err = rps.CreateUser(ctx, &u)
 		require.NoError(t, err, "create error")
 
-		_, err = rps.SignIn(u.UserLogin, u.UserPassword)
+		_, err = rps.SignIn(ctx, &u)
 		require.NoError(t, err, "create error")
 	}
-	for _, p := range testNoExistentData {
-		_, err := rps.SignIn(p.UserLogin, p.UserPassword)
+	for _, u := range testNoExistentData {
+		_, err := rps.SignIn(ctx, &u)
 		require.Error(t, err, "create error")
 	}
 	for _, u := range testMismatchedPasswords {
 
-		_, err := rps.SignIn(u.UserLogin, u.UserPassword)
+		_, err := rps.SignIn(ctx, &u)
 		require.Error(t, err, "create error")
 
-		_, err = rps.rps.Pool.Exec(context.Background(), "delete from users where user_login=$1 ", u.UserLogin)
+		_, err = rps.rps.Pool(ctx, "").Exec(ctx, "delete from users where user_login=$1 ", u.UserLogin)
 		require.NoError(t, err, "create error")
 	}
 }
