@@ -10,12 +10,14 @@ import (
 type Endpoints struct {
 	RegisterUserEndpoint endpoint.Endpoint
 	SignInEndpoint       endpoint.Endpoint
+	UpdateUserEndpoint   endpoint.Endpoint
 }
 
 func MakeServerEndpoints(s *services.Service) Endpoints {
 	return Endpoints{
 		RegisterUserEndpoint: MakeRegisterUserEndpoint(s),
 		SignInEndpoint:       MakeSignInEndpoint(s),
+		UpdateUserEndpoint:   MakeUpdateUserEndpoint(s),
 	}
 }
 
@@ -31,6 +33,14 @@ func MakeSignInEndpoint(s *services.Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(domain.User)
 		response, _ := s.SignIn(ctx, &req)
+		return response, nil
+	}
+}
+
+func MakeUpdateUserEndpoint(s *services.Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (interface{}, error) {
+		req := request.(services.UpdateUserRequest)
+		response, _ := s.UpdateUser(ctx, &req)
 		return response, nil
 	}
 }

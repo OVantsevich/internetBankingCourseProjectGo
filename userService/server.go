@@ -9,30 +9,6 @@ import (
 	"net/http"
 )
 
-//func RegisterUserEndpoint(svc services.Service) endpoint.Endpoint {
-//	return func(_ context.Context, request interface{}) (interface{}, error) {
-//		req := request.(domain.User)
-//
-//		v, err := svc.CreateUser(&req)
-//		if err != nil {
-//			return v, nil
-//		}
-//		return v, nil
-//	}
-//}
-//
-//func SignInEndpoint(svc services.Service) endpoint.Endpoint {
-//	return func(_ context.Context, request interface{}) (interface{}, error) {
-//		req := request.(domain.User)
-//
-//		v, err := svc.SignIn(req.UserLogin, req.UserPassword)
-//		if err != nil {
-//			return v, nil
-//		}
-//		return v, nil
-//	}
-//}
-
 func main() {
 	srv := services.NewService(repository.UserRepository{})
 
@@ -50,8 +26,15 @@ func main() {
 		server.EncodeResponse,
 	)
 
+	updateUser := httptransport.NewServer(
+		e.UpdateUserEndpoint,
+		server.DecodeUpdateUserRequest,
+		server.EncodeResponse,
+	)
+
 	http.Handle("/registerUser", registerUser)
 	http.Handle("/signIn", signIn)
+	http.Handle("/updateUser", updateUser)
 	log.Fatal(http.ListenAndServe(":12345", nil))
 	srv.Close()
 }

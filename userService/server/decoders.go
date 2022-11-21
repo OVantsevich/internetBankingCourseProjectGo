@@ -4,11 +4,20 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/OVantsevich/internetBankingCourseProjectGo/userService/domain"
+	"github.com/OVantsevich/internetBankingCourseProjectGo/userService/services"
 	"net/http"
 )
 
 func DecodeUserRequest(_ context.Context, r *http.Request) (interface{}, error) {
 	var request domain.User
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		return nil, err
+	}
+	return request, nil
+}
+
+func DecodeUpdateUserRequest(_ context.Context, r *http.Request) (interface{}, error) {
+	var request services.UpdateUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		return nil, err
 	}
