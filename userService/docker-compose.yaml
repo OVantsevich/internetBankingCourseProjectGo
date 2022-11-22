@@ -1,4 +1,4 @@
-version: "3.9"
+version: "3.7"
 services:
   postgres:
     image: postgres:15
@@ -10,23 +10,13 @@ services:
       - "5432:5432"
     volumes:
       - ./migrations/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
-#    healthcheck:
-#      test: [ "CMD-SHELL", "pg_isready -U habrpguser -d habrdb" ]
-#      interval: 10s
-#      timeout: 5s
-#      retries: 5
-#      start_period: 10s
-#    restart: unless-stopped
-#  web:
-#    container_name: userService
-#    build:
-#      context: .
-#    ports:
-#      - "12345:12345"
-#    environment:
-#      - POSTGRES_DB_URL=postgres://postgres:postgres@host.docker.internal:5432/userService?sslmode=disable
-#    depends_on:
-#      - postgres
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d userService" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
   userservice:
     image: ovantsevich/userservice:latest
     ports:
@@ -35,3 +25,5 @@ services:
       - POSTGRES_DB_URL=postgres://postgres:postgres@host.docker.internal:5432/userService?sslmode=disable
     depends_on:
       - postgres
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
