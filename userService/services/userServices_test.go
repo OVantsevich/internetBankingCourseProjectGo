@@ -5,21 +5,22 @@ import (
 	"github.com/OVantsevich/internetBankingCourseProjectGo/userService/domain"
 	"github.com/OVantsevich/internetBankingCourseProjectGo/userService/repository"
 	"github.com/jackc/pgx/v4/pgxpool"
-	"github.com/labstack/gommon/log"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
 
-var (
-	databaseUrl = "postgres://postgres:postgres@192.168.100.5:5432/userService"
-)
+var pool *pgxpool.Pool = nil
 
-func Pool() *pgxpool.Pool {
-	dbPool, err := pgxpool.Connect(context.Background(), databaseUrl)
-	if err != nil {
-		log.Errorf("database connection error: %v", err)
+func Pool(ctx context.Context) error {
+
+	if pool == nil {
+		var err error
+		pool, err = pgxpool.Connect(ctx, "postgres://postgres:postgres@host.docker.internal:5432/userService?sslmode=disable")
+		if err != nil {
+			return err
+		}
 	}
-	return dbPool
+	return nil
 }
 
 func TestCreate(t *testing.T) {
@@ -27,7 +28,29 @@ func TestCreate(t *testing.T) {
 		{
 			UserName:     `Oleg`,
 			Surname:      `Vantsevich`,
-			UserLogin:    `Login1`,
+			UserLogin:    `OLEG1`,
+			UserEmail:    `OLEG1@gmail.com`,
+			UserPassword: `oleg23102002`,
+		},
+		{
+			UserName:     `O`,
+			Surname:      `V`,
+			UserLogin:    `OLEG2`,
+			UserEmail:    `OLEG1@gmail.com`,
+			UserPassword: `oleg23102002`,
+		},
+		{
+			UserName:     `Oleg`,
+			Surname:      `Vantsevich`,
+			UserLogin:    `OLEG1`,
+			UserEmail:    `OLEG1@gmail.com`,
+			UserPassword: `oleg23102002`,
+		},
+		{
+			UserName:     `Oleg`,
+			Surname:      `Vantsevich`,
+			UserLogin:    `OLEG1`,
+			UserEmail:    `OLEG1@gmail.com`,
 			UserPassword: `oleg23102002`,
 		},
 		{

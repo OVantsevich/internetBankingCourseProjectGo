@@ -3,26 +3,23 @@ package main
 import (
 	"github.com/OVantsevich/internetBankingCourseProjectGo/userService/repository"
 	"github.com/OVantsevich/internetBankingCourseProjectGo/userService/server"
-	"github.com/OVantsevich/internetBankingCourseProjectGo/userService/services"
 	httptransport "github.com/go-kit/kit/transport/http"
 	"github.com/labstack/gommon/log"
 	"net/http"
 )
 
 func main() {
-	srv := services.NewService(repository.UserRepository{})
-
-	e := server.MakeServerEndpoints(srv)
+	e := server.MakeServerEndpoints()
 
 	registerUser := httptransport.NewServer(
 		e.RegisterUserEndpoint,
-		server.DecodeUserRequest,
+		server.DecodeCreateUserRequest,
 		server.EncodeResponse,
 	)
 
 	signIn := httptransport.NewServer(
 		e.SignInEndpoint,
-		server.DecodeUserRequest,
+		server.DecodeSignInRequest,
 		server.EncodeResponse,
 	)
 
@@ -32,9 +29,16 @@ func main() {
 		server.EncodeResponse,
 	)
 
+	deleteUser := httptransport.NewServer(
+		e.DeleteUserEndpoint,
+		server.DecodeDeleteUserRequest,
+		server.EncodeResponse,
+	)
+
 	http.Handle("/registerUser", registerUser)
 	http.Handle("/signIn", signIn)
 	http.Handle("/updateUser", updateUser)
+	http.Handle("/deleteUser", deleteUser)
 	log.Fatal(http.ListenAndServe(":12345", nil))
-	srv.Close()
+	repository.Close()
 }

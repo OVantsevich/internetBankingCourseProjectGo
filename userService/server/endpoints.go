@@ -11,36 +11,46 @@ type Endpoints struct {
 	RegisterUserEndpoint endpoint.Endpoint
 	SignInEndpoint       endpoint.Endpoint
 	UpdateUserEndpoint   endpoint.Endpoint
+	DeleteUserEndpoint   endpoint.Endpoint
 }
 
-func MakeServerEndpoints(s *services.Service) Endpoints {
+func MakeServerEndpoints() Endpoints {
 	return Endpoints{
-		RegisterUserEndpoint: MakeRegisterUserEndpoint(s),
-		SignInEndpoint:       MakeSignInEndpoint(s),
-		UpdateUserEndpoint:   MakeUpdateUserEndpoint(s),
+		RegisterUserEndpoint: MakeRegisterUserEndpoint(),
+		SignInEndpoint:       MakeSignInEndpoint(),
+		UpdateUserEndpoint:   MakeUpdateUserEndpoint(),
+		DeleteUserEndpoint:   MakeDeleteUserEndpoint(),
 	}
 }
 
-func MakeRegisterUserEndpoint(s *services.Service) endpoint.Endpoint {
+func MakeRegisterUserEndpoint() endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(domain.User)
-		response, _ := s.CreateUser(ctx, &req)
+		response, _ := services.CreateUser(ctx, &req)
 		return response, nil
 	}
 }
 
-func MakeSignInEndpoint(s *services.Service) endpoint.Endpoint {
+func MakeSignInEndpoint() endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		req := request.(domain.User)
-		response, _ := s.SignIn(ctx, &req)
+		req := request.(services.SignInRequest)
+		response, _ := services.SignIn(ctx, &req)
 		return response, nil
 	}
 }
 
-func MakeUpdateUserEndpoint(s *services.Service) endpoint.Endpoint {
+func MakeUpdateUserEndpoint() endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(services.UpdateUserRequest)
-		response, _ := s.UpdateUser(ctx, &req)
+		response, _ := services.UpdateUser(ctx, &req)
+		return response, nil
+	}
+}
+
+func MakeDeleteUserEndpoint() endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (interface{}, error) {
+		req := request.(services.DeleteUserRequest)
+		response, _ := services.DeleteUser(ctx, &req)
 		return response, nil
 	}
 }

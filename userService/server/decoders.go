@@ -8,8 +8,16 @@ import (
 	"net/http"
 )
 
-func DecodeUserRequest(_ context.Context, r *http.Request) (interface{}, error) {
+func DecodeCreateUserRequest(_ context.Context, r *http.Request) (interface{}, error) {
 	var request domain.User
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		return nil, err
+	}
+	return request, nil
+}
+
+func DecodeSignInRequest(_ context.Context, r *http.Request) (interface{}, error) {
+	var request services.SignInRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		return nil, err
 	}
@@ -18,6 +26,14 @@ func DecodeUserRequest(_ context.Context, r *http.Request) (interface{}, error) 
 
 func DecodeUpdateUserRequest(_ context.Context, r *http.Request) (interface{}, error) {
 	var request services.UpdateUserRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		return nil, err
+	}
+	return request, nil
+}
+
+func DecodeDeleteUserRequest(_ context.Context, r *http.Request) (interface{}, error) {
+	var request services.DeleteUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		return nil, err
 	}
