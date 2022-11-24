@@ -43,14 +43,15 @@ func CreateUser(ctx context.Context, user *domain.User) (string, error) {
 		return "something went wrong", err
 	}
 
-	_, err := pool.Exec(ctx, "insert into users(user_name, surname, user_login, user_password, user_email) "+
-		"values($1, $2, $3, $4, $5)", user.UserName, user.Surname, user.UserLogin, user.UserPassword, user.UserEmail)
-	if err != nil {
+	var userName, surname string
+	if err := pool.QueryRow(ctx,
+		"INSERT INTO users (user_login, user_email, user_password, user_name, surname) SELECT $1, $2, $3, $4, $5 WHERE NOT EXISTS(SELECT 1 FROM users WHERE user_login=$6) RETURNING user_name, surname",
+		user.UserLogin, user.UserEmail, user.UserPassword, user.UserName, user.Surname, user.UserLogin).Scan(&userName, &surname); err != nil {
 		log.Errorf("database error with create user: %v", err)
-		return "something went wrong", err
+		return "user with this login already exist", err
 	}
 
-	return "Greetings, " + user.UserName + " " + user.Surname, nil
+	return "Greetings, " + userName + " " + surname, nil
 }
 
 func GetUserByLogin(ctx context.Context, login string) (*domain.User, string, error) {
@@ -59,42 +60,13 @@ func GetUserByLogin(ctx context.Context, login string) (*domain.User, string, er
 		return nil, "something went wrong", err
 	}
 
-	rows, err := pool.Query(ctx, "select * from users  where user_login=$1", login)
-	if err != nil {
-		log.Errorf("database error with create user: %v", err)
-		return nil, "something went wrong", err
-	}
-	if !rows.Next() {
-		return nil, "user with this login does not exist", nil
-	}
-
 	var user domain.User
-
-	err = rows.Scan(&user.ID, &user.UserLogin, &user.UserEmail, &user.UserPassword, &user.UserName,
-		&user.Surname, &user.IsDeleted, &user.CreationDate, &user.ModificationDate)
-
-	return &user, "", nil
-}
-
-func GetUserByEmail(ctx context.Context, email string) (*domain.User, string, error) {
-
-	if err := Pool(ctx); err != nil {
-		return nil, "something went wrong", err
+	if err := pool.QueryRow(ctx, "select * from users where user_login=$1", login).Scan(
+		&user.ID, &user.UserLogin, &user.UserEmail, &user.UserPassword, &user.UserName,
+		&user.Surname, &user.IsDeleted, &user.CreationDate, &user.ModificationDate); err != nil {
+		log.Errorf("database error with login user: %v", err)
+		return nil, "user with this login doesn't exist", err
 	}
-
-	rows, err := pool.Query(ctx, "select * from users  where user_email=$1", email)
-	if err != nil {
-		log.Errorf("database error with create user: %v", err)
-		return nil, "something went wrong", err
-	}
-	if !rows.Next() {
-		return nil, "user with this login does not exist", nil
-	}
-
-	var user domain.User
-
-	err = rows.Scan(&user.ID, &user.UserLogin, &user.UserEmail, &user.UserPassword, &user.UserName,
-		&user.Surname, &user.IsDeleted, &user.CreationDate, &user.ModificationDate)
 
 	return &user, "", nil
 }
@@ -109,7 +81,7 @@ func UpdateUser(ctx context.Context, user *domain.User) (string, error) {
 		user.UserName, user.Surname, user.ModificationDate, user.UserPassword, user.UserEmail, user.UserLogin)
 	if err != nil {
 		log.Errorf("database error with update user: %v", err)
-		return "something went wrong", err
+		return "user with this login doesn't exist", err
 	}
 
 	return user.UserLogin + " your account has been changed", nil

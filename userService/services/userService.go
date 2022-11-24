@@ -35,25 +35,6 @@ func CreateUser(ctx context.Context, user *domain.User) (string, error) {
 	if str, err := ValidLogin(user.UserLogin); err != nil {
 		return str, err
 	}
-
-	if user, str, err := repository.GetUserByLogin(ctx, user.UserLogin); err != nil {
-		return str, err
-	} else {
-		if user != nil {
-			return "user with this login already exists", fmt.Errorf("database error with create user: " +
-				"user with this login already exists")
-		}
-	}
-
-	if user, str, err := repository.GetUserByEmail(ctx, user.UserEmail); err != nil {
-		return str, err
-	} else {
-		if user != nil {
-			return "this email is already in use", fmt.Errorf("database error with create user: " +
-				"this email is already in use")
-		}
-	}
-
 	if str, err := ValidPassword(user.UserPassword); err != nil {
 		return str, err
 	}
@@ -85,29 +66,21 @@ func SignIn(ctx context.Context, signIn *SignInRequest) (string, error) {
 		return "Invalid login", err
 	}
 
-	var err error
-	var password string
-	if password, err = HashingPassword(signIn.UserPassword); err != nil {
-		return password, err
-	}
-
-	var str string
-	var user *domain.User
-	if user, str, err = repository.GetUserByLogin(ctx, signIn.UserLogin); err != nil {
+	user, str, err := repository.GetUserByLogin(ctx, signIn.UserLogin)
+	if err != nil {
 		return str, err
 	}
 	if user.IsDeleted {
 		return "user with this login doesn't exist", fmt.Errorf("user with this login doesn't exist")
 	}
-	if CheckPasswordHash(password, user.UserPassword) {
+	if !CheckPasswordHash(user.UserPassword, signIn.UserPassword) {
 		return "Incorrect password", fmt.Errorf("incorrect password")
 	}
 
 	token := jwt.New(jwt.SigningMethodHS256)
 	claims := token.Claims.(jwt.MapClaims)
 	claims["exp"] = time.Now().Add(20 * time.Minute)
-	claims["authorized"] = true
-	claims["user"] = signIn.UserLogin
+	claims["login"] = signIn.UserLogin
 	tokenString, err := token.SignedString([]byte(repository.Config.JwtKey))
 	if err != nil {
 		return "something went wrong", err
@@ -144,27 +117,12 @@ func UpdateUser(ctx context.Context, userUpdateRequest *UpdateUserRequest) (stri
 		return userUpdateRequest.UserPassword, err
 	}
 
-	var str string
-	var user *domain.User
-	if user, str, err = repository.GetUserByLogin(ctx, claims["user"].(string)); err != nil {
+	user, str, err := repository.GetUserByLogin(ctx, claims["login"].(string))
+	if err != nil {
 		return str, err
-	} else {
-		if user == nil {
-			return "user with this login doesn't exists", fmt.Errorf("database error with create user: " +
-				"user with this login doesn't exists")
-		}
 	}
 	if user.IsDeleted {
 		return "user with this login doesn't exist", fmt.Errorf("user with this login doesn't exist")
-	}
-
-	if user, str, err := repository.GetUserByEmail(ctx, userUpdateRequest.UserEmail); err != nil {
-		return str, err
-	} else {
-		if user != nil {
-			return "this email is already in use", fmt.Errorf("database error with create user: " +
-				"this email is already in use")
-		}
 	}
 
 	user.CompareAndSet(&domain.User{UserName: userUpdateRequest.UserName, UserEmail: userUpdateRequest.UserEmail,
@@ -186,16 +144,16 @@ func DeleteUser(ctx context.Context, userDeleteRequest *DeleteUserRequest) (stri
 		return "Invalid token", err
 	}
 
-	return repository.DeleteUser(ctx, claims["user"].(string), time.Now())
+	return repository.DeleteUser(ctx, claims["login"].(string), time.Now())
 }
 
-func ValidName(name string, fieldName string, isNil ...bool) (string, error) {
+func ValidName(name string, fieldName string) (string, error) {
 	if name == "" {
-		return fieldName + "can't be empty", fmt.Errorf("validation error:" + fieldName + "can't be empty")
+		return fieldName + " can't be empty", fmt.Errorf("validation error: " + fieldName + " can't be empty")
 	}
 	for _, r := range name {
 		if !unicode.IsLetter(r) {
-			return fieldName + "isn't valid", fmt.Errorf("validation error:" + fieldName + " isn't valid")
+			return fieldName + " isn't valid", fmt.Errorf("validation error: " + fieldName + " isn't valid")
 		}
 	}
 	return "", nil
@@ -232,7 +190,7 @@ func HashingPassword(password string) (string, error) {
 	return string(hashedBytesPassword), nil
 }
 
-func CheckPasswordHash(password, hash string) bool {
+func CheckPasswordHash(hash, password string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	return err == nil
 }

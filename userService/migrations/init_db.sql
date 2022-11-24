@@ -22,5 +22,5 @@ create unique index users_id_uindex
 create unique index users_user_login_uindex
     on users (user_login);
 
-create unique index users_user_email_uindex
+create index users_user_email_index
     on users (user_email);
