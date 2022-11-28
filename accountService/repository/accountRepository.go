@@ -41,6 +41,7 @@ func GetUserAccounts(ctx context.Context, userId int) ([]domain.Account, string,
 	}
 
 	rows, err := pool.Query(ctx, "select account_name, amount, creation_date from accounts where user_id=$1 and is_deleted=false", userId)
+	defer rows.Close()
 	if err != nil {
 		log.Errorf("database error with create user: %v", err)
 		return nil, "something went wrong", err
@@ -61,4 +62,30 @@ func GetUserAccounts(ctx context.Context, userId int) ([]domain.Account, string,
 		i++
 	}
 	return accounts, "", nil
+}
+
+func GetUserAccountByAccountName(ctx context.Context, userId int, accountName string) (*domain.Account, string, error) {
+
+	if str, err := Pool(ctx); err != nil {
+		return nil, str, err
+	}
+
+	rows, err := pool.Query(ctx, "select * from accounts where user_id=$1 and account_name=$2 and is_deleted=false", userId, accountName)
+	defer rows.Close()
+	if err != nil {
+		log.Errorf("database error with create user: %v", err)
+		return nil, "something went wrong", err
+	}
+	if !rows.Next() {
+		return nil, "you don't have accounts yet", fmt.Errorf("you don't have accounts yet")
+	}
+
+	var account domain.Account
+	err = rows.Scan(&account.ID, &account.UserId, &account.AccountName, &account.Amount, &account.IsDeleted, &account.CreationDate, &account.ModificationDate)
+	if err != nil {
+		log.Errorf("database error with execution from rows: %v", err)
+		return nil, "something went wrong", err
+	}
+
+	return &account, "", nil
 }

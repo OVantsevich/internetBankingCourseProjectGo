@@ -38,7 +38,8 @@ func GetUserByLogin(ctx context.Context, login string) (*domain.User, string, er
 	}
 
 	var user domain.User
-	if err := pool.QueryRow(ctx, "select * from users where user_login=$1 and is_deleted=false", login).Scan(
+	row := pool.QueryRow(ctx, "select * from users where user_login=$1 and is_deleted=false", login)
+	if err := row.Scan(
 		&user.ID, &user.UserLogin, &user.UserName,
 		&user.Surname, &user.IsDeleted); err != nil {
 		log.Errorf("database error with login user: %v", err)

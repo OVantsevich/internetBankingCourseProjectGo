@@ -19,3 +19,17 @@ func DecodeGetUserAccountsRequest(_ context.Context, r *http.Request) (interface
 	token := r.Header.Get("token")
 	return services.GetUserAccountsRequest{Token: token}, nil
 }
+
+func DecodeCreateTransactionRequest(_ context.Context, r *http.Request) (interface{}, error) {
+	var request services.CreateTransactionRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		return nil, err
+	}
+	return request, nil
+}
+
+func DecodeGetAccountTransactionsRequest(_ context.Context, r *http.Request) (interface{}, error) {
+	token := r.Header.Get("token")
+	name := r.Header.Get("account_name")
+	return services.GetAccountTransactionsRequest{Token: token, AccountName: name}, nil
+}

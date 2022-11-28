@@ -7,14 +7,18 @@ import (
 )
 
 type Endpoints struct {
-	CreateAccountEndpoint   endpoint.Endpoint
-	GetUserAccountsEndpoint endpoint.Endpoint
+	CreateAccountEndpoint          endpoint.Endpoint
+	GetUserAccountsEndpoint        endpoint.Endpoint
+	CreateTransactionEndpoint      endpoint.Endpoint
+	GetAccountTransactionsEndpoint endpoint.Endpoint
 }
 
 func MakeServerEndpoints() Endpoints {
 	return Endpoints{
-		CreateAccountEndpoint:   MakeCreateAccountEndpoint(),
-		GetUserAccountsEndpoint: MakeGetUserAccountsEndpoint(),
+		CreateAccountEndpoint:          MakeCreateAccountEndpoint(),
+		GetUserAccountsEndpoint:        MakeGetUserAccountsEndpoint(),
+		CreateTransactionEndpoint:      MakeCreateTransactionEndpoint(),
+		GetAccountTransactionsEndpoint: MakeGetAccountTransactionsEndpoint(),
 	}
 }
 
@@ -32,6 +36,25 @@ func MakeGetUserAccountsEndpoint() endpoint.Endpoint {
 		accounts, response, err := services.GetUserAccounts(ctx, &req)
 		if accounts != nil {
 			return accounts, nil
+		}
+		return response, err
+	}
+}
+
+func MakeCreateTransactionEndpoint() endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (interface{}, error) {
+		req := request.(services.CreateTransactionRequest)
+		response, _ := services.CreateTransaction(ctx, &req)
+		return response, nil
+	}
+}
+
+func MakeGetAccountTransactionsEndpoint() endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (interface{}, error) {
+		req := request.(services.GetAccountTransactionsRequest)
+		transactions, response, err := services.GetAccountTransactions(ctx, &req)
+		if transactions != nil {
+			return transactions, nil
 		}
 		return response, err
 	}

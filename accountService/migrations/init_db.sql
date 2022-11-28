@@ -1,24 +1,24 @@
-create table users
+create table if not exists users
 (
-    id                serial
+    id         serial
         constraint users_pk
             primary key,
-    user_login        varchar(50)                               not null,
-    user_name         varchar(50)                               not null,
-    surname           varchar(50)                               not null,
-    is_deleted        boolean      default false                not null
+    user_login varchar(50)           not null,
+    user_name  varchar(50)           not null,
+    surname    varchar(50)           not null,
+    is_deleted boolean default false not null
 );
 
 alter table users
     owner to postgres;
 
-create unique index users_id_uindex
+create unique index if not exists users_id_uindex
     on users (id);
 
-create unique index users_user_login_uindex
+create unique index if not exists users_user_login_uindex
     on users (user_login);
 
-create table accounts
+create table if not exists accounts
 (
     id                serial
         constraint account_pk
@@ -36,16 +36,16 @@ create table accounts
 alter table accounts
     owner to postgres;
 
-create unique index account_id_uindex
+create unique index if not exists account_id_uindex
     on accounts (id);
 
-create index accounts_is_deleted_index
+create index if not exists accounts_is_deleted_index
     on accounts (is_deleted);
 
-create unique index account_user_id_account_name_uindex
+create unique index if not exists account_user_id_account_name_uindex
     on accounts (user_id, account_name);
 
-create table account_types
+create table if not exists account_types
 (
     id                serial
         constraint account_types_pk
@@ -61,25 +61,28 @@ create table account_types
 alter table account_types
     owner to postgres;
 
-create unique index account_types_uindex
+create unique index if not exists account_types_uindex
     on account_types (id);
 
-create unique index account_types_account_type_name_uindex
+create unique index if not exists account_types_account_type_name_uindex
     on account_types (account_type_name);
 
-create index account_types_is_deleted_index
+create index if not exists account_types_is_deleted_index
     on account_types (is_deleted);
 
 insert into account_types (id, account_type_name)
-values (1, 'dollar_account');
+select 1, 'dollar_account'
+where not exists(select 1 from account_types where account_type_name = 'dollar_account');
 
 insert into account_types (id, account_type_name)
-values (2, 'euro_account');
+select 2, 'euro_account'
+where not exists(select 1 from account_types where account_type_name = 'euro_account');
 
 insert into account_types (id, account_type_name)
-values (3, 'ruble_account');
+select 3, 'ruble_account'
+where not exists(select 1 from account_types where account_type_name = 'ruble_account');
 
-create table l_account_types_accounts
+create table if not exists l_account_types_accounts
 (
     id                serial
         constraint l_account_types_accounts_pk
@@ -98,46 +101,48 @@ create table l_account_types_accounts
 alter table l_account_types_accounts
     owner to postgres;
 
-create unique index l_account_types_accounts_account_type_id_account_id_uindex
+create unique index if not exists l_account_types_accounts_account_type_id_account_id_uindex
     on l_account_types_accounts (account_type_id, account_id);
 
-create index l_account_types_accounts_is_deleted_index
+create index if not exists l_account_types_accounts_is_deleted_index
     on account_types (is_deleted);
 
-create table transactions
+create table if not exists transactions
 (
-    id                serial
+    id                  serial
         constraint transaction_pk
             primary key,
-    account_id        integer                                   not null
-        constraint transactions_account_id_fk
+    account_sender_id   integer                                   not null
+        constraint transactions_account_sender_id_fk
             references accounts,
-    amount            integer      default 0                    not null,
-    is_deleted        boolean      default false                not null,
-    creation_date     timestamp(6) default CURRENT_TIMESTAMP(6) not null,
-    modification_date timestamp(6) default CURRENT_TIMESTAMP(6) not null
+    account_receiver_id integer                                   not null
+        constraint transactions_account_receiver_id_fk
+            references accounts,
+    amount              integer      default 0                    not null,
+    is_completed        boolean      default true                 not null,
+    is_deleted          boolean      default false                not null,
+    creation_date       timestamp(6) default CURRENT_TIMESTAMP(6) not null,
+    modification_date   timestamp(6) default CURRENT_TIMESTAMP(6) not null
 );
 
 alter table transactions
     owner to postgres;
 
-create unique index transactions_id_uindex
+create unique index if not exists transactions_id_uindex
     on transactions (id);
 
-create index transactions_account_id_index
-    on transactions (account_id);
+create index if not exists transactions_accounts_id_index
+    on transactions (account_sender_id, account_receiver_id);
 
-create index transactions_is_deleted_index
+create index if not exists transactions_is_deleted_index
     on transactions (is_deleted);
 
-create table transaction_types
+create table if not exists transaction_types
 (
     id                    serial
         constraint transaction_types_pk
             primary key,
-    transaction_type_name varchar(40)  default 'type'::character varying not null
-        constraint transaction_types_transaction_type_name_unq
-            unique,
+    transaction_type_name varchar(40)  default 'type'::character varying not null,
     is_deleted            boolean      default false                     not null,
     creation_date         timestamp(6) default CURRENT_TIMESTAMP(6)      not null,
     modification_date     timestamp(6) default CURRENT_TIMESTAMP(6)      not null
@@ -146,22 +151,32 @@ create table transaction_types
 alter table transaction_types
     owner to postgres;
 
-create unique index transaction_types_uindex
+create unique index if not exists transaction_types_uindex
     on transaction_types (id);
 
-create unique index transaction_types_transaction_type_name_uindex
+create unique index if not exists transaction_types_transaction_type_name_uindex
     on transaction_types (transaction_type_name);
 
-create index transaction_types_is_deleted_index
+create index if not exists transaction_types_is_deleted_index
     on transaction_types (is_deleted);
 
 insert into transaction_types (id, transaction_type_name)
-values (1, 'internal_transaction');
+select 1, 'internal_transaction'
+where not exists(select 1 from transaction_types where transaction_type_name = 'internal_transaction');
 
 insert into transaction_types (id, transaction_type_name)
-values (2, 'external_transaction');
+select 2, 'external_transaction'
+where not exists(select 1 from transaction_types where transaction_type_name = 'external_transaction');
 
-create table l_transaction_types_transactions
+insert into transaction_types (id, transaction_type_name)
+select 3, 'failed_transaction'
+where not exists(select 1 from transaction_types where transaction_type_name = 'failed_transaction');
+
+insert into transaction_types (id, transaction_type_name)
+select 4, 'success_transaction'
+where not exists(select 1 from transaction_types where transaction_type_name = 'success_transaction');
+
+create table if not exists l_transaction_types_transactions
 (
     id                  serial
         constraint l_transaction_types_transactions_pk
@@ -180,23 +195,37 @@ create table l_transaction_types_transactions
 alter table l_transaction_types_transactions
     owner to postgres;
 
-create unique index l_transaction_types_transactions_type_id_id_uindex
+create unique index if not exists l_transaction_types_transactions_type_id_id_uindex
     on l_transaction_types_transactions (transaction_type_id, transaction_id);
 
-create index l_transaction_types_transactions_is_deleted_index
+create index if not exists l_transaction_types_transactions_is_deleted_index
     on l_transaction_types_transactions (is_deleted);
 
 CREATE OR REPLACE FUNCTION fun_updateaccountamount() RETURNS TRIGGER AS
 $BODY$
 BEGIN
-    update accounts set amount = amount - new.amount
-    where new.account_id = id;
+    insert into l_transaction_types_transactions (transaction_type_id, transaction_id)
+    select (select id from transaction_types where transaction_type_name = 'failed_transaction'), new.id
+    where not exists(select 1 from accounts where new.account_sender_id = id and amount >= new.amount);
+    update transactions
+    set is_completed = false
+    where new.id = id
+      and not exists(select 1 from accounts where new.account_sender_id = id and amount >= new.amount);
+    update accounts
+    set amount = amount + new.amount
+    where new.account_receiver_id = id
+      and exists(select 1 from accounts where new.account_sender_id = id and amount >= new.amount);
+    update accounts
+    set amount = amount - new.amount
+    where new.account_sender_id = id
+      and amount >= new.amount;
     RETURN new;
 END;
 $BODY$
     language plpgsql;
 
 CREATE TRIGGER TRI_TRANSACTIONS
-    AFTER INSERT ON TRANSACTIONS
+    AFTER INSERT
+    ON TRANSACTIONS
     FOR EACH ROW
 EXECUTE PROCEDURE fun_updateaccountamount();

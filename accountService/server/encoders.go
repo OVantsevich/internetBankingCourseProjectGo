@@ -27,3 +27,23 @@ func EncodeGetUserAccountsResponse(_ context.Context, w http.ResponseWriter, res
 
 	return err
 }
+
+func EncodeCreateTransactionResponse(_ context.Context, w http.ResponseWriter, response interface{}) error {
+	return json.NewEncoder(w).Encode(response)
+}
+
+func EncodeGetAccountTransactionsResponse(_ context.Context, w http.ResponseWriter, response interface{}) error {
+	encoder := json.NewEncoder(w)
+
+	accounts := response.([]services.GetAccountTransactionsResponse)
+
+	var err error
+	for _, r := range accounts {
+		err = encoder.Encode(r)
+		if err != nil {
+			return err
+		}
+	}
+
+	return err
+}

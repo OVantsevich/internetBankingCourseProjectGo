@@ -23,8 +23,22 @@ func main() {
 		server.EncodeGetUserAccountsResponse,
 	)
 
+	CreateTransaction := httptransport.NewServer(
+		e.CreateTransactionEndpoint,
+		server.DecodeCreateTransactionRequest,
+		server.EncodeCreateTransactionResponse,
+	)
+
+	getAccountTransactions := httptransport.NewServer(
+		e.GetAccountTransactionsEndpoint,
+		server.DecodeGetAccountTransactionsRequest,
+		server.EncodeGetAccountTransactionsResponse,
+	)
+
 	http.Handle("/createAccount", createAccount)
 	http.Handle("/getUserAccounts", getUserAccounts)
+	http.Handle("/createTransaction", CreateTransaction)
+	http.Handle("/getAccountTransactions", getAccountTransactions)
 	log.Fatal(http.ListenAndServe(":12344", nil))
 	repository.Close()
 }
