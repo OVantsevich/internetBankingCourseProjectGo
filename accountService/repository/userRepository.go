@@ -31,6 +31,23 @@ func Close() {
 	}
 }
 
+func CreateUser(ctx context.Context, user *domain.User) error {
+
+	if _, err := Pool(ctx); err != nil {
+		return err
+	}
+
+	var userName, surname string
+	if err := pool.QueryRow(ctx,
+		"INSERT INTO users (user_login, user_name, surname) SELECT $1, $2, $3 WHERE NOT EXISTS(SELECT 1 FROM users WHERE user_login=$4) RETURNING user_name, surname",
+		user.UserLogin, user.UserName, user.Surname, user.UserLogin).Scan(&userName, &surname); err != nil {
+		log.Errorf("user with this login already exist: %v", err)
+		return err
+	}
+
+	return nil
+}
+
 func GetUserByLogin(ctx context.Context, login string) (*domain.User, string, error) {
 
 	if str, err := Pool(ctx); err != nil {

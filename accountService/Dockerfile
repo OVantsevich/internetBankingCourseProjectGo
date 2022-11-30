@@ -27,7 +27,7 @@ WORKDIR /dist
 RUN cp /build/main .
 
 # Export necessary port
-EXPOSE 12345
+EXPOSE 12344
 
 # Command to run when starting the container
 CMD ["/dist/main"]

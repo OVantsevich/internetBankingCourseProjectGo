@@ -30,7 +30,7 @@ func CreateAccount(ctx context.Context, request *CreateAccountRequest) (string, 
 		return str, err
 	}
 
-	if str, err := ValidAccountName(request.AccountName); err != nil {
+	if str, err := ValidAccountName(request.AccountName, ""); err != nil {
 		return str, err
 	}
 
@@ -73,13 +73,13 @@ func GetUserAccounts(ctx context.Context, request *GetUserAccountsRequest) ([]do
 	return repository.GetUserAccounts(ctx, user.ID)
 }
 
-func ValidAccountName(name string) (string, error) {
+func ValidAccountName(name string, filedName string) (string, error) {
 	if name == "" {
-		return "account name can't be empty", fmt.Errorf("validation error: account name can't be empty")
+		return "account " + filedName + " name can't be empty", fmt.Errorf("validation error: account " + filedName + " name can't be empty")
 	}
 	for _, r := range name {
 		if !unicode.IsLetter(r) && !unicode.IsDigit(r) {
-			return "account name isn't valid", fmt.Errorf("validation error: account name isn't valid")
+			return "account " + filedName + " name isn't valid", fmt.Errorf("validation error: account " + filedName + " name isn't valid")
 		}
 	}
 	return "", nil

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/OVantsevich/internetBankingCourseProjectGo/accountService/eventStreaming"
 	"github.com/OVantsevich/internetBankingCourseProjectGo/accountService/repository"
 	"github.com/OVantsevich/internetBankingCourseProjectGo/accountService/server"
 	httptransport "github.com/go-kit/kit/transport/http"
@@ -10,6 +11,15 @@ import (
 
 func main() {
 	e := server.MakeServerEndpoints()
+
+	err := eventStreaming.JetStreamInit()
+	if err != nil {
+		log.Errorf("error with init stream: %v", err)
+	}
+	_, err = eventStreaming.JetStream.Subscribe(eventStreaming.SubjectNameUserCreated, eventStreaming.CreatingUserHandler)
+	if err != nil {
+		log.Printf("Subscribe for " + eventStreaming.SubjectNameUserCreated + " failed")
+	}
 
 	createAccount := httptransport.NewServer(
 		e.CreateAccountEndpoint,

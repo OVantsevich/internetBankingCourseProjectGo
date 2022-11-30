@@ -10,6 +10,7 @@ require (
 
 require (
 	github.com/OVantsevich/internetBankingCourseProjectGo/userService v0.0.0-20221116115534-323bc45da812 // indirect
+	github.com/caarlos0/env/v6 v6.10.1 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
 	github.com/go-kit/log v0.2.0 // indirect
 	github.com/go-logfmt/logfmt v0.5.1 // indirect
@@ -25,6 +26,9 @@ require (
 	github.com/lib/pq v1.10.7 // indirect
 	github.com/mattn/go-colorable v0.1.11 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
+	github.com/nats-io/nats.go v1.20.0 // indirect
+	github.com/nats-io/nkeys v0.3.0 // indirect
+	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/svanxxx/go v0.0.0-20221114150459-f840d838107c // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.1 // indirect
