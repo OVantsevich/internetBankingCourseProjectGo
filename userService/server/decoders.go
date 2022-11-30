@@ -29,13 +29,12 @@ func DecodeUpdateUserRequest(_ context.Context, r *http.Request) (interface{}, e
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		return nil, err
 	}
+	request.Token = r.Header.Get("Authorization")
 	return request, nil
 }
 
 func DecodeDeleteUserRequest(_ context.Context, r *http.Request) (interface{}, error) {
 	var request services.DeleteUserRequest
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		return nil, err
-	}
+	request.Token = r.Header.Get("Authorization")
 	return request, nil
 }

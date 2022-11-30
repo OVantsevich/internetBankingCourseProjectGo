@@ -6,10 +6,11 @@ import (
 	"github.com/OVantsevich/internetBankingCourseProjectGo/userService/domain"
 	"github.com/OVantsevich/internetBankingCourseProjectGo/userService/eventStreaming"
 	"github.com/OVantsevich/internetBankingCourseProjectGo/userService/repository"
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt/v4"
 	passwordvalidator "github.com/wagslane/go-password-validator"
 	"golang.org/x/crypto/bcrypt"
 	"net/mail"
+	"strings"
 	"time"
 	"unicode"
 )
@@ -92,7 +93,7 @@ func SignIn(ctx context.Context, signIn *SignInRequest) (string, error) {
 
 	token := jwt.New(jwt.SigningMethodHS256)
 	claims := token.Claims.(jwt.MapClaims)
-	claims["exp"] = time.Now().Add(20 * time.Minute)
+	claims["exp"] = time.Now().Add(time.Hour * 2).Unix()
 	claims["login"] = signIn.UserLogin
 	tokenString, err := token.SignedString([]byte(repository.Config.JwtKey))
 	if err != nil {
@@ -105,12 +106,9 @@ func SignIn(ctx context.Context, signIn *SignInRequest) (string, error) {
 func UpdateUser(ctx context.Context, userUpdateRequest *UpdateUserRequest) (string, error) {
 
 	claims := jwt.MapClaims{}
-	_, err := jwt.ParseWithClaims(userUpdateRequest.Token, claims,
-		func(token *jwt.Token) (interface{}, error) {
-			return []byte(repository.Config.JwtKey), nil
-		})
+	str, err := ParseToken(userUpdateRequest.Token, &claims)
 	if err != nil {
-		return "Invalid token", err
+		return str, nil
 	}
 
 	if str, err := ValidName(userUpdateRequest.UserName, "name"); userUpdateRequest.UserName != "" && err != nil {
@@ -149,14 +147,10 @@ func UpdateUser(ctx context.Context, userUpdateRequest *UpdateUserRequest) (stri
 func DeleteUser(ctx context.Context, userDeleteRequest *DeleteUserRequest) (string, error) {
 
 	claims := jwt.MapClaims{}
-	_, err := jwt.ParseWithClaims(userDeleteRequest.Token, claims,
-		func(token *jwt.Token) (interface{}, error) {
-			return []byte(repository.Config.JwtKey), nil
-		})
+	str, err := ParseToken(userDeleteRequest.Token, &claims)
 	if err != nil {
-		return "Invalid token", err
+		return str, nil
 	}
-
 	return repository.DeleteUser(ctx, claims["login"].(string), time.Now())
 }
 
@@ -206,4 +200,22 @@ func HashingPassword(password string) (string, error) {
 func CheckPasswordHash(hash, password string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	return err == nil
+}
+
+func ParseToken(val string, claims *jwt.MapClaims) (string, error) {
+	authHeaderParts := strings.Split(val, " ")
+	if len(authHeaderParts) != 2 || !strings.EqualFold(authHeaderParts[0], "bearer") {
+		return "not bearer auth", fmt.Errorf("not bearer auth")
+	}
+
+	_, err := jwt.ParseWithClaims(authHeaderParts[1], *claims, Key)
+	if err != nil {
+		return "invalid token", err
+	}
+
+	return "", nil
+}
+
+func Key(_ *jwt.Token) (interface{}, error) {
+	return []byte(repository.Config.JwtKey), nil
 }
