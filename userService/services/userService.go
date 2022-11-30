@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/OVantsevich/internetBankingCourseProjectGo/userService/domain"
+	"github.com/OVantsevich/internetBankingCourseProjectGo/userService/eventStreaming"
 	"github.com/OVantsevich/internetBankingCourseProjectGo/userService/repository"
 	"github.com/dgrijalva/jwt-go"
 	passwordvalidator "github.com/wagslane/go-password-validator"
@@ -32,6 +33,11 @@ type DeleteUserRequest struct {
 
 func CreateUser(ctx context.Context, user *domain.User) (string, error) {
 
+	err := eventStreaming.JetStreamInit()
+	if err != nil {
+		return "something went wrong", err
+	}
+
 	if str, err := ValidLogin(user.UserLogin); err != nil {
 		return str, err
 	}
@@ -48,12 +54,19 @@ func CreateUser(ctx context.Context, user *domain.User) (string, error) {
 		return str, err
 	}
 
-	var err error
 	if user.UserPassword, err = HashingPassword(user.UserPassword); err != nil {
 		return user.UserPassword, err
 	}
 
-	return repository.CreateUser(ctx, user)
+	str, err := repository.CreateUser(ctx, user)
+	if err == nil {
+		if err := eventStreaming.CreatingUser(user); err != nil {
+			return "something went wrong", err
+		}
+
+	}
+
+	return str, err
 }
 
 func SignIn(ctx context.Context, signIn *SignInRequest) (string, error) {
