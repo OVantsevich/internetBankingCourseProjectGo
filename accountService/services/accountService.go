@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"github.com/OVantsevich/internetBankingCourseProjectGo/accountService/domain"
 	"github.com/OVantsevich/internetBankingCourseProjectGo/accountService/repository"
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt/v4"
+	"strings"
 	"time"
 	"unicode"
 )
@@ -35,12 +36,9 @@ func CreateAccount(ctx context.Context, request *CreateAccountRequest) (string, 
 	}
 
 	claims := jwt.MapClaims{}
-	_, err := jwt.ParseWithClaims(request.Token, claims,
-		func(token *jwt.Token) (interface{}, error) {
-			return []byte(domain.Config.JwtKey), nil
-		})
+	str, err := ParseToken(request.Token, &claims)
 	if err != nil {
-		return "Invalid token", err
+		return str, err
 	}
 
 	user, str, err := repository.GetUserByLogin(ctx, claims["login"].(string))
@@ -57,12 +55,9 @@ func GetUserAccounts(ctx context.Context, request *GetUserAccountsRequest) ([]do
 	}
 
 	claims := jwt.MapClaims{}
-	_, err := jwt.ParseWithClaims(request.Token, claims,
-		func(token *jwt.Token) (interface{}, error) {
-			return []byte(domain.Config.JwtKey), nil
-		})
+	str, err := ParseToken(request.Token, &claims)
 	if err != nil {
-		return nil, "Invalid token", err
+		return nil, str, err
 	}
 
 	user, str, err := repository.GetUserByLogin(ctx, claims["login"].(string))
@@ -83,4 +78,22 @@ func ValidAccountName(name string, filedName string) (string, error) {
 		}
 	}
 	return "", nil
+}
+
+func ParseToken(val string, claims *jwt.MapClaims) (string, error) {
+	authHeaderParts := strings.Split(val, " ")
+	if len(authHeaderParts) != 2 || !strings.EqualFold(authHeaderParts[0], "bearer") {
+		return "not bearer auth", fmt.Errorf("not bearer auth")
+	}
+
+	_, err := jwt.ParseWithClaims(authHeaderParts[1], *claims, Key)
+	if err != nil {
+		return "invalid token", err
+	}
+
+	return "", nil
+}
+
+func Key(_ *jwt.Token) (interface{}, error) {
+	return []byte(domain.Config.JwtKey), nil
 }

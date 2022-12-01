@@ -52,7 +52,7 @@ func GetUserAccounts(ctx context.Context, userId int) ([]domain.Account, string,
 
 	var accounts []domain.Account
 	var i = 0
-	for rows.Next() {
+	for {
 		accounts = append(accounts, domain.Account{})
 		err = rows.Scan(&accounts[i].AccountName, &accounts[i].Amount, &accounts[i].CreationDate)
 		if err != nil {
@@ -60,6 +60,9 @@ func GetUserAccounts(ctx context.Context, userId int) ([]domain.Account, string,
 			return nil, "something went wrong", err
 		}
 		i++
+		if !rows.Next() {
+			break
+		}
 	}
 	return accounts, "", nil
 }

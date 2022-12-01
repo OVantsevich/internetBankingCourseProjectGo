@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/OVantsevich/internetBankingCourseProjectGo/accountService/domain"
 	"github.com/OVantsevich/internetBankingCourseProjectGo/accountService/repository"
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt/v4"
 	"time"
 )
 
@@ -41,12 +41,9 @@ func CreateTransaction(ctx context.Context, request *CreateTransactionRequest) (
 	}
 
 	claims := jwt.MapClaims{}
-	_, err := jwt.ParseWithClaims(request.Token, claims,
-		func(token *jwt.Token) (interface{}, error) {
-			return []byte(domain.Config.JwtKey), nil
-		})
+	str, err := ParseToken(request.Token, &claims)
 	if err != nil {
-		return "Invalid token", err
+		return str, err
 	}
 
 	user, str, err := repository.GetUserByLogin(ctx, claims["login"].(string))
@@ -73,12 +70,9 @@ func GetAccountTransactions(ctx context.Context, request *GetAccountTransactions
 	}
 
 	claims := jwt.MapClaims{}
-	_, err := jwt.ParseWithClaims(request.Token, claims,
-		func(token *jwt.Token) (interface{}, error) {
-			return []byte(domain.Config.JwtKey), nil
-		})
+	str, err := ParseToken(request.Token, &claims)
 	if err != nil {
-		return nil, "Invalid token", err
+		return nil, str, err
 	}
 
 	user, str, err := repository.GetUserByLogin(ctx, claims["login"].(string))

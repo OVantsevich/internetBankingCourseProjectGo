@@ -9,6 +9,7 @@ import (
 
 func DecodeCreateAccountRequest(_ context.Context, r *http.Request) (interface{}, error) {
 	var request services.CreateAccountRequest
+	request.Token = r.Header.Get("Authorization")
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		return nil, err
 	}
@@ -16,12 +17,13 @@ func DecodeCreateAccountRequest(_ context.Context, r *http.Request) (interface{}
 }
 
 func DecodeGetUserAccountsRequest(_ context.Context, r *http.Request) (interface{}, error) {
-	token := r.Header.Get("token")
+	token := r.Header.Get("Authorization")
 	return services.GetUserAccountsRequest{Token: token}, nil
 }
 
 func DecodeCreateTransactionRequest(_ context.Context, r *http.Request) (interface{}, error) {
 	var request services.CreateTransactionRequest
+	request.Token = r.Header.Get("Authorization")
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		return nil, err
 	}
@@ -29,7 +31,7 @@ func DecodeCreateTransactionRequest(_ context.Context, r *http.Request) (interfa
 }
 
 func DecodeGetAccountTransactionsRequest(_ context.Context, r *http.Request) (interface{}, error) {
-	token := r.Header.Get("token")
+	token := r.Header.Get("Authorization")
 	name := r.Header.Get("account_name")
 	return services.GetAccountTransactionsRequest{Token: token, AccountName: name}, nil
 }
