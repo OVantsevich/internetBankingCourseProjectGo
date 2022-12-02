@@ -26,10 +26,10 @@ func DecodeSignInRequest(_ context.Context, r *http.Request) (interface{}, error
 
 func DecodeUpdateUserRequest(_ context.Context, r *http.Request) (interface{}, error) {
 	var request services.UpdateUserRequest
+	request.Token = r.Header.Get("Authorization")
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		return nil, err
 	}
-	request.Token = r.Header.Get("Authorization")
 	return request, nil
 }
 
