@@ -3,8 +3,9 @@ package server
 import (
 	"context"
 	"encoding/json"
-	"github.com/OVantsevich/internetBankingCourseProjectGo/accountService/domain"
+	"fmt"
 	"github.com/OVantsevich/internetBankingCourseProjectGo/accountService/services"
+	"github.com/labstack/gommon/log"
 	"net/http"
 )
 
@@ -15,11 +16,16 @@ func EncodeCreateAccountResponse(_ context.Context, w http.ResponseWriter, respo
 func EncodeGetUserAccountsResponse(_ context.Context, w http.ResponseWriter, response interface{}) error {
 	encoder := json.NewEncoder(w)
 
-	accounts := response.([]domain.Account)
+	accounts, ok := response.([]services.GetUserAccountsResponse)
+	if !ok {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Errorf("error cast, getUserAccounts")
+		return fmt.Errorf("something went wrong")
+	}
 
 	var err error
 	for _, r := range accounts {
-		err = encoder.Encode(services.GetUserAccountsResponse{AccountName: r.AccountName, Amount: r.Amount, CreationDate: r.CreationDate})
+		err = encoder.Encode(r)
 		if err != nil {
 			return err
 		}
@@ -35,10 +41,15 @@ func EncodeCreateTransactionResponse(_ context.Context, w http.ResponseWriter, r
 func EncodeGetAccountTransactionsResponse(_ context.Context, w http.ResponseWriter, response interface{}) error {
 	encoder := json.NewEncoder(w)
 
-	accounts := response.([]services.GetAccountTransactionsResponse)
+	transactions, ok := response.([]services.GetAccountTransactionsResponse)
+	if !ok {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Errorf("error cast, getUserAccounts")
+		return fmt.Errorf("something went wrong")
+	}
 
 	var err error
-	for _, r := range accounts {
+	for _, r := range transactions {
 		err = encoder.Encode(r)
 		if err != nil {
 			return err
