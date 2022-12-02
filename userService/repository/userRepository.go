@@ -9,20 +9,11 @@ import (
 )
 
 var pool *pgxpool.Pool = nil
-var Config domain.Config
 
 func Pool(ctx context.Context) error {
-
-	//if err := env.Parse(&Config); err != nil {
-	//	log.Fatalf("something went wrong with environment, %e", err)
-	//	return err
-	//}
-	Config.JwtKey = "874967EC3EA3490F8F2EF6478B72A756"
-	Config.DatabaseUrl = "postgres://postgres:postgres@host.docker.internal:5432/userService?sslmode=disable"
-
 	if pool == nil {
 		var err error
-		pool, err = pgxpool.Connect(ctx, Config.DatabaseUrl)
+		pool, err = pgxpool.Connect(ctx, domain.Config.DatabaseUrl)
 		if err != nil {
 			log.Errorf("database connection error: %v", err)
 			return err
@@ -61,7 +52,7 @@ func GetUserByLogin(ctx context.Context, login string) (*domain.User, string, er
 	}
 
 	var user domain.User
-	if err := pool.QueryRow(ctx, "select * from users where user_login=$1", login).Scan(
+	if err := pool.QueryRow(ctx, "select * from users where user_login=$1 and is_deleted=false", login).Scan(
 		&user.ID, &user.UserLogin, &user.UserEmail, &user.UserPassword, &user.UserName,
 		&user.Surname, &user.IsDeleted, &user.CreationDate, &user.ModificationDate); err != nil {
 		log.Errorf("database error with login user: %v", err)
@@ -77,9 +68,8 @@ func UpdateUser(ctx context.Context, user *domain.User) (string, error) {
 		return "something went wrong", err
 	}
 
-	_, err := pool.Exec(ctx, "update users set user_name=$1, surname=$2, modification_date=$3, user_password=$4, user_email=$5 where user_login=$6",
-		user.UserName, user.Surname, user.ModificationDate, user.UserPassword, user.UserEmail, user.UserLogin)
-	if err != nil {
+	if err := pool.QueryRow(ctx, "update users set user_name=$1, surname=$2, modification_date=$3, user_password=$4, user_email=$5 where user_login=$6 and is_deleted=false",
+		user.UserName, user.Surname, user.ModificationDate, user.UserPassword, user.UserEmail, user.UserLogin).Scan(); err != nil {
 		log.Errorf("database error with update user: %v", err)
 		return "user with this login doesn't exist", err
 	}
@@ -87,15 +77,14 @@ func UpdateUser(ctx context.Context, user *domain.User) (string, error) {
 	return user.UserLogin + " your account has been changed", nil
 }
 
-func DeleteUser(ctx context.Context, userLogin string, modificationDate time.Time) (string, error) {
+func DeleteUser(ctx context.Context, userLogin string) (string, error) {
 
 	if err := Pool(ctx); err != nil {
 		return "something went wrong", err
 	}
 
-	_, err := pool.Exec(ctx, "update users set is_deleted=$1, modification_date=$2 where user_login=$3",
-		true, modificationDate, userLogin)
-	if err != nil {
+	if err := pool.QueryRow(ctx, "update users set is_deleted=true, modification_date=$1 where user_login=$2 and is_deleted=false",
+		time.Now(), userLogin).Scan(); err != nil {
 		log.Errorf("database error with delete user: %v", err)
 		return "user with this login doesn't exist", err
 	}

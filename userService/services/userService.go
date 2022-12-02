@@ -7,6 +7,7 @@ import (
 	"github.com/OVantsevich/internetBankingCourseProjectGo/userService/eventStreaming"
 	"github.com/OVantsevich/internetBankingCourseProjectGo/userService/repository"
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/labstack/gommon/log"
 	passwordvalidator "github.com/wagslane/go-password-validator"
 	"golang.org/x/crypto/bcrypt"
 	"net/mail"
@@ -39,6 +40,11 @@ func CreateUser(ctx context.Context, user *domain.User) (string, error) {
 		return "something went wrong", err
 	}
 
+	if user == nil {
+		log.Errorf("creating user, services: %v", fmt.Errorf("user is nil"))
+		return "something went wrong", fmt.Errorf("user is nil")
+	}
+
 	if str, err := ValidLogin(user.UserLogin); err != nil {
 		return str, err
 	}
@@ -61,71 +67,75 @@ func CreateUser(ctx context.Context, user *domain.User) (string, error) {
 
 	str, err := repository.CreateUser(ctx, user)
 	if err == nil {
-		if err := eventStreaming.CreatingUser(user); err != nil {
-			return "something went wrong", err
+		if errLocal := eventStreaming.CreatingUser(user); errLocal != nil {
+			log.Errorf("creating user, services, event streaming down: %v", errLocal)
+			return str, err
 		}
-
 	}
 
 	return str, err
 }
 
-func SignIn(ctx context.Context, signIn *SignInRequest) (string, error) {
+func SignIn(ctx context.Context, request *SignInRequest) (string, error) {
 
-	if signIn == nil {
-		return "", fmt.Errorf("user not found")
+	if request == nil {
+		log.Errorf("signing user, services: %v", fmt.Errorf("request is nil"))
+		return "something went wrong", fmt.Errorf("request is nil")
 	}
 
-	if _, err := ValidLogin(signIn.UserLogin); err != nil {
+	if _, err := ValidLogin(request.UserLogin); err != nil {
 		return "Invalid login", err
 	}
 
-	user, str, err := repository.GetUserByLogin(ctx, signIn.UserLogin)
+	user, str, err := repository.GetUserByLogin(ctx, request.UserLogin)
 	if err != nil {
 		return str, err
 	}
-	if user.IsDeleted {
-		return "user with this login doesn't exist", fmt.Errorf("user with this login doesn't exist")
-	}
-	if !CheckPasswordHash(user.UserPassword, signIn.UserPassword) {
+	if !CheckPasswordHash(user.UserPassword, request.UserPassword) {
 		return "Incorrect password", fmt.Errorf("incorrect password")
 	}
 
 	token := jwt.New(jwt.SigningMethodHS256)
 	claims := token.Claims.(jwt.MapClaims)
 	claims["exp"] = time.Now().Add(time.Hour * 2).Unix()
-	claims["login"] = signIn.UserLogin
-	tokenString, err := token.SignedString([]byte(repository.Config.JwtKey))
+	claims["login"] = request.UserLogin
+	tokenString, err := token.SignedString([]byte(domain.Config.JwtKey))
 	if err != nil {
+		log.Errorf("signing user, services: %v", err)
 		return "something went wrong", err
 	}
 
 	return tokenString, nil
 }
 
-func UpdateUser(ctx context.Context, userUpdateRequest *UpdateUserRequest) (string, error) {
+func UpdateUser(ctx context.Context, request *UpdateUserRequest) (string, error) {
+
+	if request == nil {
+		log.Errorf("updating user, services: %v", fmt.Errorf("request is nil"))
+		return "something went wrong", fmt.Errorf("request is nil")
+	}
 
 	claims := jwt.MapClaims{}
-	str, err := ParseToken(userUpdateRequest.Token, &claims)
+	str, err := ParseToken(request.Token, &claims)
 	if err != nil {
 		return str, nil
 	}
 
-	if str, err := ValidName(userUpdateRequest.UserName, "name"); userUpdateRequest.UserName != "" && err != nil {
+	if str, err := ValidName(request.UserName, "name"); request.UserName != "" && err != nil {
 		return str, err
 	}
-	if str, err := ValidName(userUpdateRequest.Surname, "surname"); userUpdateRequest.Surname != "" && err != nil {
+	if str, err := ValidName(request.Surname, "surname"); request.Surname != "" && err != nil {
 		return str, err
 	}
-	if str, err := ValidPassword(userUpdateRequest.UserPassword); userUpdateRequest.UserPassword != "" && err != nil {
+	if str, err := ValidPassword(request.UserPassword); request.UserPassword != "" && err != nil {
 		return str, err
 	}
-	if str, err := ValidEmail(userUpdateRequest.UserEmail); userUpdateRequest.UserEmail != "" && err != nil {
+	if str, err := ValidEmail(request.UserEmail); request.UserEmail != "" && err != nil {
 		return str, err
 	}
 
-	if userUpdateRequest.UserPassword, err = HashingPassword(userUpdateRequest.UserPassword); err != nil {
-		return userUpdateRequest.UserPassword, err
+	if request.UserPassword, err = HashingPassword(request.UserPassword); err != nil {
+		return request.UserPassword, err
 	}
 
 	user, str, err := repository.GetUserByLogin(ctx, claims["login"].(string))
@@ -136,22 +146,30 @@ func UpdateUser(ctx context.Context, userUpdateRequest *UpdateUserRequest) (stri
 		return "user with this login doesn't exist", fmt.Errorf("user with this login doesn't exist")
 	}
 
-	user.CompareAndSet(&domain.User{UserName: userUpdateRequest.UserName, UserEmail: userUpdateRequest.UserEmail,
-		Surname: userUpdateRequest.Surname, UserPassword: userUpdateRequest.UserPassword})
+	user.UpdateUser(&domain.User{UserName: request.UserName, UserEmail: request.UserEmail,
+		Surname: request.Surname, UserPassword: request.UserPassword})
 
 	user.ModificationDate = time.Now()
 
-	return repository.UpdateUser(ctx, user)
+	str, err = repository.UpdateUser(ctx, user)
+	if err == nil {
+		if errLocal := eventStreaming.CreatingUser(user); errLocal != nil {
+			log.Errorf("creating user, services, event streaming down: %v", errLocal)
+			return str, err
+		}
+	}
+
+	return str, err
 }
 
-func DeleteUser(ctx context.Context, userDeleteRequest *DeleteUserRequest) (string, error) {
+func DeleteUser(ctx context.Context, request *DeleteUserRequest) (string, error) {
 
 	claims := jwt.MapClaims{}
-	str, err := ParseToken(userDeleteRequest.Token, &claims)
+	str, err := ParseToken(request.Token, &claims)
 	if err != nil {
 		return str, nil
 	}
-	return repository.DeleteUser(ctx, claims["login"].(string), time.Now())
+	return repository.DeleteUser(ctx, claims["login"].(string))
 }
 
 func ValidName(name string, fieldName string) (string, error) {
@@ -217,5 +235,5 @@ func ParseToken(val string, claims *jwt.MapClaims) (string, error) {
 }
 
 func Key(_ *jwt.Token) (interface{}, error) {
-	return []byte(repository.Config.JwtKey), nil
+	return []byte(domain.Config.JwtKey), nil
 }

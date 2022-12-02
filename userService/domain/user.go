@@ -16,20 +16,17 @@ type User struct {
 	ModificationDate time.Time `json:"modification_date" sql:"type:timestamp(6);default CURRENT_TIMESTAMP(6);not null"`
 }
 
-func (dest *User) CompareAndSet(src *User) {
-	if src.UserName != "" && dest.UserName != src.UserName {
-		dest.UserName = src.UserName
+func (old *User) UpdateUser(new *User) {
+	if new.UserName != "" && old.UserName != new.UserName {
+		old.UserName = new.UserName
 	}
-	if src.Surname != "" && dest.Surname != src.Surname {
-		dest.Surname = src.Surname
+	if new.Surname != "" && old.Surname != new.Surname {
+		old.Surname = new.Surname
 	}
-	if src.UserLogin != "" && dest.UserLogin != src.UserLogin {
-		dest.UserLogin = src.UserLogin
+	if new.UserEmail != "" && old.UserEmail != new.UserEmail {
+		old.UserEmail = new.UserEmail
 	}
-	if src.UserEmail != "" && dest.UserEmail != src.UserEmail {
-		dest.UserEmail = src.UserEmail
-	}
-	if src.UserPassword != "" && dest.UserPassword != src.UserPassword {
-		dest.UserPassword = src.UserPassword
+	if new.UserPassword != "" && old.UserPassword != new.UserPassword {
+		old.UserPassword = new.UserPassword
 	}
 }
