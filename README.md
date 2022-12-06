@@ -1,7 +1,8 @@
 # internetBankingCourseProjectGo
 userService api
 
-Request:	URL: POST localhost:12345\createUser
+Request:	
+		URL: POST localhost:12345\createUser
 
 		body: "user_name"required:   	 string			
 		"surname"required: 	 string
