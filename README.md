@@ -1,75 +1,76 @@
 # internetBankingCourseProjectGo
-2.3.1. user service api
-URL: POST localhost:12345\createUser
+userService api
 
-body: "user_name"required:   	 string			
-"surname"required: 	 string
-"user_login"required: 	 string{unique}
-"user_email"required: 	 string{name@domainName}
-"user_password"required: string
+Request:	URL: POST localhost:12345\createUser
 
-	Responses: information line: string
+		body: "user_name"required:   	 string			
+		"surname"required: 	 string
+		"user_login"required: 	 string{unique}
+		"user_email"required: 	 string{name@domainName}
+		"user_password"required: string
 
-URL: GET localhost:12345\signIn
+Responses: 	information line: string
 
-body: "user_login"required: 	 string{unique}
-"user_password"required: string
+Request:	URL: GET localhost:12345\signIn
 
-Responses: token: string
+		body: "user_login"required: 	 string{unique}
+		"user_password"required: string
 
-URL: PUT localhost:12345\updateUser
-Header: "Authorization"required: Bearer “token”
+Responses: 	token: string
 
-body: "user_name"optional:   	 string			
-"surname"optional: 		 string
-"user_email"optional: 	 string{name@domainName}
-"user_password"optional: 	 string
+Request:	URL: PUT localhost:12345\updateUser
+		Header: "Authorization"required: Bearer “token”
 
-Responses: information line: string
+		body: "user_name"optional:   	 string			
+		"surname"optional: 		 string
+		"user_email"optional: 	 string{name@domainName}
+		"user_password"optional: 	 string
 
-URL: DEL localhost:12345\deleteUser
-Header: "Authorization"required: Bearer “token”
+Responses: 	information line: string
 
-Responses: information line: string
+Request:	URL: DEL localhost:12345\deleteUser
+		Header: "Authorization"required: Bearer “token”
 
-  2.3.2. account service api
+Responses: 	information line: string
 
-URL: POST localhost:12344\createAccount
-Header: "Authorization"required: Bearer “token”
+Account service api
 
-body: "account_name"required:    string	
+Request:	URL: POST localhost:12344\createAccount
+		Header: "Authorization"required: Bearer “token”
 
-	Responses: information line: string
+		body: "account_name"required:    string	
 
-URL: GET localhost:12344\getUserAccounts
-Header: "Authorization"required: Bearer “token”
+Responses: 	information line: string
 
-Responses: array of structs
-[
-"account_name":string
-"amount":int
-"account_number":string
-"creation_date":date-time
-	]
+Request:	URL: GET localhost:12344\getUserAccounts
+		Header: "Authorization"required: Bearer “token”
+
+Responses: 	array of structs
+		[
+			"account_name":string
+			"amount":int
+			"account_number":string
+			"creation_date":date-time
+		]
 
 
-URL: POST localhost:12344\createTransaction
-Header: "Authorization"required: Bearer “token”
+Request:	URL: POST localhost:12344\createTransaction
+		Header: "Authorization"required: Bearer “token”
 
-body: "account_sender_number"required:   	 string			
-"account_receiver_number"required: 	 string
-"amount"required: 	 int
+		body: "account_sender_number"required:   	 string			
+		"account_receiver_number"required: 	 string
+		"amount"required: 	 int
 
-Responses: information line: string
+Responses: 	information line: string
 
-URL: GET localhost:12344\getAccountTransactions
-Header: "Authorization"required: Bearer “token”
-Header: "Account-Number"required: string
+Request:	URL: GET localhost:12344\getAccountTransactions
+		Header: "Authorization"required: Bearer “token”
+		Header: "Account-Number"required: string
 
-Responses: array of structs
-[
-"account_sender_number":string
-"account_receiver_number":int
-"amount":string
-"creation_date":date-time
-	]
+Responses: 	array of structs
+		[
+			"account_sender_number":string
+			"account_receiver_number":int
+			"amount":string
+			"creation_date":date-time
+		]
