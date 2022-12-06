@@ -22,13 +22,14 @@ var jetStream nats.JetStreamContext = nil
 
 type UserForAccounts struct {
 	UserLogin string `json:"user_login" sql:"type:varchar(50);not null"`
+	UserEmail string `json:"user_email" sql:"type:varchar(50);not null"`
 	UserName  string `json:"user_name" sql:"type:varchar(50);not null"`
 	Surname   string `json:"surname" sql:"type:varchar(50);not null"`
 }
 
 func JetStreamInit() error {
 	if jetStream == nil {
-		nc, err := nats.Connect("nats://host.docker.internal:4222")
+		nc, err := nats.Connect(domain.Config.NatsUrl)
 		if err != nil {
 			log.Errorf("jetstream init: %v", err)
 			return err
@@ -70,6 +71,7 @@ func CreateStream() error {
 func CreatingUser(user *domain.User) error {
 	createdUser, err := json.Marshal(UserForAccounts{
 		UserLogin: user.UserLogin,
+		UserEmail: user.UserEmail,
 		UserName:  user.UserName,
 		Surname:   user.Surname,
 	})
@@ -89,6 +91,7 @@ func CreatingUser(user *domain.User) error {
 func UpdatingUser(user *domain.User) error {
 	updatedUser, err := json.Marshal(UserForAccounts{
 		UserLogin: user.UserLogin,
+		UserEmail: user.UserEmail,
 		UserName:  user.UserName,
 		Surname:   user.Surname,
 	})

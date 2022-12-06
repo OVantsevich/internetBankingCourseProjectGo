@@ -35,11 +35,6 @@ type DeleteUserRequest struct {
 
 func CreateUser(ctx context.Context, user *domain.User) (string, error) {
 
-	err := eventStreaming.JetStreamInit()
-	if err != nil {
-		return "something went wrong", err
-	}
-
 	if user == nil {
 		log.Errorf("creating user, services: %v", fmt.Errorf("user is nil"))
 		return "something went wrong", fmt.Errorf("user is nil")
@@ -61,6 +56,7 @@ func CreateUser(ctx context.Context, user *domain.User) (string, error) {
 		return str, err
 	}
 
+	var err error
 	if user.UserPassword, err = HashingPassword(user.UserPassword); err != nil {
 		return user.UserPassword, err
 	}
@@ -142,9 +138,6 @@ func UpdateUser(ctx context.Context, request *UpdateUserRequest) (string, error)
 	if err != nil {
 		return str, err
 	}
-	if user.IsDeleted {
-		return "user with this login doesn't exist", fmt.Errorf("user with this login doesn't exist")
-	}
 
 	user.UpdateUser(&domain.User{UserName: request.UserName, UserEmail: request.UserEmail,
 		Surname: request.Surname, UserPassword: request.UserPassword})
@@ -153,7 +146,7 @@ func UpdateUser(ctx context.Context, request *UpdateUserRequest) (string, error)
 
 	str, err = repository.UpdateUser(ctx, user)
 	if err == nil {
-		if errLocal := eventStreaming.CreatingUser(user); errLocal != nil {
+		if errLocal := eventStreaming.UpdatingUser(user); errLocal != nil {
 			log.Errorf("creating user, services, event streaming down: %v", errLocal)
 			return str, err
 		}
@@ -164,12 +157,26 @@ func UpdateUser(ctx context.Context, request *UpdateUserRequest) (string, error)
 
 func DeleteUser(ctx context.Context, request *DeleteUserRequest) (string, error) {
 
+	if request == nil {
+		log.Errorf("delete user, services: %v", fmt.Errorf("request is nil"))
+		return "something went wrong", fmt.Errorf("request is nil")
+	}
+
 	claims := jwt.MapClaims{}
 	str, err := ParseToken(request.Token, &claims)
 	if err != nil {
 		return str, nil
 	}
-	return repository.DeleteUser(ctx, claims["login"].(string))
+
+	str, err = repository.DeleteUser(ctx, claims["login"].(string))
+	if err == nil {
+		if errLocal := eventStreaming.DeletingUser(claims["login"].(string)); errLocal != nil {
+			log.Errorf("deleting user, services, event streaming down: %v", errLocal)
+			return str, err
+		}
+	}
+
+	return str, err
 }
 
 func ValidName(name string, fieldName string) (string, error) {

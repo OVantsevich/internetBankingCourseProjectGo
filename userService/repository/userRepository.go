@@ -68,8 +68,9 @@ func UpdateUser(ctx context.Context, user *domain.User) (string, error) {
 		return "something went wrong", err
 	}
 
-	if err := pool.QueryRow(ctx, "update users set user_name=$1, surname=$2, modification_date=$3, user_password=$4, user_email=$5 where user_login=$6 and is_deleted=false",
-		user.UserName, user.Surname, user.ModificationDate, user.UserPassword, user.UserEmail, user.UserLogin).Scan(); err != nil {
+	var id int
+	if err := pool.QueryRow(ctx, "update users set user_name=$1, surname=$2, modification_date=$3, user_password=$4, user_email=$5 where user_login=$6 and is_deleted=false returning id",
+		user.UserName, user.Surname, user.ModificationDate, user.UserPassword, user.UserEmail, user.UserLogin).Scan(&id); err != nil {
 		log.Errorf("database error with update user: %v", err)
 		return "user with this login doesn't exist", err
 	}
@@ -83,8 +84,9 @@ func DeleteUser(ctx context.Context, userLogin string) (string, error) {
 		return "something went wrong", err
 	}
 
-	if err := pool.QueryRow(ctx, "update users set is_deleted=true, modification_date=$1 where user_login=$2 and is_deleted=false",
-		time.Now(), userLogin).Scan(); err != nil {
+	var id int
+	if err := pool.QueryRow(ctx, "update users set is_deleted=true, modification_date=$1 where user_login=$2 and is_deleted=false returning id",
+		time.Now(), userLogin).Scan(&id); err != nil {
 		log.Errorf("database error with delete user: %v", err)
 		return "user with this login doesn't exist", err
 	}
