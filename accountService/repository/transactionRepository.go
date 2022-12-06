@@ -10,8 +10,8 @@ import (
 
 func CreateTransaction(ctx context.Context, transaction *domain.Transaction) (string, error) {
 
-	if str, err := Pool(ctx); err != nil {
-		return str, err
+	if err := Pool(ctx); err != nil {
+		return "something went wrong", err
 	}
 
 	var id int
@@ -43,8 +43,8 @@ func CreateTransaction(ctx context.Context, transaction *domain.Transaction) (st
 
 func GetAccountTransactions(ctx context.Context, accountId int) ([]string, []string, []domain.Transaction, string, error) {
 
-	if str, err := Pool(ctx); err != nil {
-		return nil, nil, nil, str, err
+	if err := Pool(ctx); err != nil {
+		return nil, nil, nil, "something went wrong", err
 	}
 
 	rows, err := pool.Query(ctx, "select ("+

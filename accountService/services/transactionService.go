@@ -29,10 +29,6 @@ type GetAccountTransactionsResponse struct {
 }
 
 func CreateTransaction(ctx context.Context, request *CreateTransactionRequest) (string, error) {
-	if str, err := domain.InitConfig(); err != nil {
-		return str, err
-	}
-
 	if str, err := ValidAccountName(request.AccountSenderName, "sender"); err != nil {
 		return str, err
 	}
@@ -65,10 +61,6 @@ func CreateTransaction(ctx context.Context, request *CreateTransactionRequest) (
 }
 
 func GetAccountTransactions(ctx context.Context, request *GetAccountTransactionsRequest) ([]GetAccountTransactionsResponse, string, error) {
-	if str, err := domain.InitConfig(); err != nil {
-		return nil, str, err
-	}
-
 	claims := jwt.MapClaims{}
 	str, err := ParseToken(request.Token, &claims)
 	if err != nil {

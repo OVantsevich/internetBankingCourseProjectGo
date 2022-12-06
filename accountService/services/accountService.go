@@ -27,10 +27,6 @@ type GetUserAccountsResponse struct {
 }
 
 func CreateAccount(ctx context.Context, request *CreateAccountRequest) (string, error) {
-	if str, err := domain.InitConfig(); err != nil {
-		return str, err
-	}
-
 	if str, err := ValidAccountName(request.AccountName, ""); err != nil {
 		return str, err
 	}
@@ -50,10 +46,6 @@ func CreateAccount(ctx context.Context, request *CreateAccountRequest) (string, 
 }
 
 func GetUserAccounts(ctx context.Context, request *GetUserAccountsRequest) ([]domain.Account, string, error) {
-	if str, err := domain.InitConfig(); err != nil {
-		return nil, str, err
-	}
-
 	claims := jwt.MapClaims{}
 	str, err := ParseToken(request.Token, &claims)
 	if err != nil {

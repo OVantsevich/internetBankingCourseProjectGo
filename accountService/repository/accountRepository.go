@@ -10,8 +10,8 @@ import (
 
 func CreateAccount(ctx context.Context, account *domain.Account) (string, error) {
 
-	if str, err := Pool(ctx); err != nil {
-		return str, err
+	if err := Pool(ctx); err != nil {
+		return "something went wrong", err
 	}
 
 	rows, err := pool.Query(ctx, "insert into accounts (account_name, amount, user_id) "+
@@ -36,8 +36,8 @@ func CreateAccount(ctx context.Context, account *domain.Account) (string, error)
 
 func GetUserAccounts(ctx context.Context, userId int) ([]domain.Account, string, error) {
 
-	if str, err := Pool(ctx); err != nil {
-		return nil, str, err
+	if err := Pool(ctx); err != nil {
+		return nil, "something went wrong", err
 	}
 
 	rows, err := pool.Query(ctx, "select account_name, amount, creation_date from accounts where user_id=$1 and is_deleted=false", userId)
@@ -69,8 +69,8 @@ func GetUserAccounts(ctx context.Context, userId int) ([]domain.Account, string,
 
 func GetUserAccountByAccountName(ctx context.Context, userId int, accountName string) (*domain.Account, string, error) {
 
-	if str, err := Pool(ctx); err != nil {
-		return nil, str, err
+	if err := Pool(ctx); err != nil {
+		return nil, "something went wrong", err
 	}
 
 	rows, err := pool.Query(ctx, "select * from accounts where user_id=$1 and account_name=$2 and is_deleted=false", userId, accountName)

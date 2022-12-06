@@ -9,20 +9,16 @@ import (
 
 var pool *pgxpool.Pool = nil
 
-func Pool(ctx context.Context) (string, error) {
-	if str, err := domain.InitConfig(); err != nil {
-		return str, err
-	}
-
+func Pool(ctx context.Context) error {
 	if pool == nil {
 		var err error
 		pool, err = pgxpool.Connect(ctx, domain.Config.DatabaseUrl)
 		if err != nil {
 			log.Errorf("database connection error: %v", err)
-			return "database connection error", err
+			return err
 		}
 	}
-	return "", nil
+	return nil
 }
 
 func Close() {
@@ -33,7 +29,7 @@ func Close() {
 
 func CreateUser(ctx context.Context, user *domain.User) error {
 
-	if _, err := Pool(ctx); err != nil {
+	if err := Pool(ctx); err != nil {
 		return err
 	}
 
@@ -50,8 +46,8 @@ func CreateUser(ctx context.Context, user *domain.User) error {
 
 func GetUserByLogin(ctx context.Context, login string) (*domain.User, string, error) {
 
-	if str, err := Pool(ctx); err != nil {
-		return nil, str, err
+	if err := Pool(ctx); err != nil {
+		return nil, "", err
 	}
 
 	var user domain.User
@@ -64,4 +60,36 @@ func GetUserByLogin(ctx context.Context, login string) (*domain.User, string, er
 	}
 
 	return &user, "", nil
+}
+
+func UpdateUser(ctx context.Context, user *domain.User) error {
+
+	if err := Pool(ctx); err != nil {
+		return err
+	}
+
+	var id int
+	if err := pool.QueryRow(ctx, "update users set user_name=$1, surname=$2 where user_login=$3 and is_deleted=false returning id",
+		user.UserName, user.Surname, user.UserLogin).Scan(&id); err != nil {
+		log.Errorf("database error with update user: %v", err)
+		return err
+	}
+
+	return nil
+}
+
+func DeleteUser(ctx context.Context, userLogin string) error {
+
+	if err := Pool(ctx); err != nil {
+		return err
+	}
+
+	var id int
+	if err := pool.QueryRow(ctx, "update users set is_deleted=true where user_login=$1 and is_deleted=false returning id",
+		userLogin).Scan(&id); err != nil {
+		log.Errorf("database error with delete user: %v", err)
+		return err
+	}
+
+	return nil
 }

@@ -10,19 +10,12 @@ import (
 )
 
 func main() {
-	_, err := domain.InitConfig()
+	err := domain.InitConfig()
 	if err != nil {
 		log.Fatalf("error with init config: %v", err)
 	}
-
-	err = eventStreaming.JetStreamInit()
-	if err != nil {
-		log.Errorf("error with init stream: %v", err)
-	}
-	_, err = eventStreaming.JetStream.Subscribe(eventStreaming.SubjectNameUserCreated, eventStreaming.CreatingUserHandler)
-	if err != nil {
-		log.Printf("Subscribe for " + eventStreaming.SubjectNameUserCreated + " failed")
-	}
+	eventStreaming.JetStreamInit()
+	eventStreaming.HandleUser()
 
 	h := server.MakeHTTPHandler()
 	log.Fatal(http.ListenAndServe(":12344", h))
