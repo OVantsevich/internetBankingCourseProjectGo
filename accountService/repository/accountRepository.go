@@ -4,43 +4,45 @@ import (
 	"context"
 	"fmt"
 	"github.com/OVantsevich/internetBankingCourseProjectGo/accountService/domain"
+	"github.com/jackc/pgx/v4"
 	"github.com/labstack/gommon/log"
 	"strconv"
+	"time"
 )
 
-func CreateAccount(ctx context.Context, account *domain.Account) (string, error) {
+func CreateAccount(ctx context.Context, account *domain.Account, userLogin string) (string, error) {
 
 	if err := Pool(ctx); err != nil {
 		return "something went wrong", err
 	}
 
-	rows, err := pool.Query(ctx, "insert into accounts (account_name, amount, user_id) "+
-		"select $1, $2, $3 where exists(select 1 from users where id = $4 and is_deleted = false) returning account_name",
-		account.AccountName, account.Amount, account.UserId, account.UserId)
-	if err != nil {
-		log.Errorf("database error with create account: %v", rows.Err())
-		return "something went wrong", rows.Err()
-	}
-
-	if !rows.Next() {
-		rows.Close()
-		if rows.Err() != nil {
-			log.Errorf("database error with create account: %v", rows.Err())
-			return "you already have account with this name", rows.Err()
+	var name string
+	accountNumber := strconv.FormatInt(time.Now().Unix(), 10)
+	if err := pool.QueryRow(ctx, "insert into accounts (user_id, account_name, amount, account_number)"+
+		"select (select id from users where user_login = $1 and is_deleted = false), $2, $3, $4 "+
+		"where exists(select 1 from users where user_login = $5 and is_deleted = false)"+
+		"returning account_name",
+		userLogin, account.AccountName, account.Amount, accountNumber, userLogin).Scan(&name); err != nil {
+		if err == pgx.ErrNoRows {
+			log.Errorf("database error with create account: %v", err)
+			return "user with this login doesn't exist", err
 		}
-		return "user with this login doesn't exist", fmt.Errorf("user with this login doesn't exist")
+		log.Errorf("database error with create account: %v", err)
+		return "account with this name already exist", err
 	}
 
-	return "Account: " + account.AccountName + " created." + " Balance is: " + strconv.Itoa(account.Amount), nil
+	return "Account: " + name + " created." + " Balance is: " + strconv.Itoa(account.Amount), nil
 }
 
-func GetUserAccounts(ctx context.Context, userId int) ([]domain.Account, string, error) {
+func GetUserAccounts(ctx context.Context, userLogin string) ([]domain.Account, string, error) {
 
 	if err := Pool(ctx); err != nil {
 		return nil, "something went wrong", err
 	}
 
-	rows, err := pool.Query(ctx, "select account_name, amount, creation_date from accounts where user_id=$1 and is_deleted=false", userId)
+	rows, err := pool.Query(ctx, "select account_name, amount, creation_date, account_number "+
+		"from accounts "+
+		"where user_id=(select id from users where user_login = $1 and is_deleted = false)", userLogin)
 	defer rows.Close()
 	if err != nil {
 		log.Errorf("database error with create user: %v", err)
@@ -54,7 +56,7 @@ func GetUserAccounts(ctx context.Context, userId int) ([]domain.Account, string,
 	var i = 0
 	for {
 		accounts = append(accounts, domain.Account{})
-		err = rows.Scan(&accounts[i].AccountName, &accounts[i].Amount, &accounts[i].CreationDate)
+		err = rows.Scan(&accounts[i].AccountName, &accounts[i].Amount, &accounts[i].CreationDate, &accounts[i].AccountNumber)
 		if err != nil {
 			log.Errorf("database error with execution from rows: %v", err)
 			return nil, "something went wrong", err
@@ -65,30 +67,4 @@ func GetUserAccounts(ctx context.Context, userId int) ([]domain.Account, string,
 		}
 	}
 	return accounts, "", nil
-}
-
-func GetUserAccountByAccountName(ctx context.Context, userId int, accountName string) (*domain.Account, string, error) {
-
-	if err := Pool(ctx); err != nil {
-		return nil, "something went wrong", err
-	}
-
-	rows, err := pool.Query(ctx, "select * from accounts where user_id=$1 and account_name=$2 and is_deleted=false", userId, accountName)
-	defer rows.Close()
-	if err != nil {
-		log.Errorf("database error with create user: %v", err)
-		return nil, "something went wrong", err
-	}
-	if !rows.Next() {
-		return nil, "you don't have accounts yet", fmt.Errorf("you don't have accounts yet")
-	}
-
-	var account domain.Account
-	err = rows.Scan(&account.ID, &account.UserId, &account.AccountName, &account.Amount, &account.IsDeleted, &account.CreationDate, &account.ModificationDate)
-	if err != nil {
-		log.Errorf("database error with execution from rows: %v", err)
-		return nil, "something went wrong", err
-	}
-
-	return &account, "", nil
 }

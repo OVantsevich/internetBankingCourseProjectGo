@@ -2,22 +2,21 @@ package services
 
 import (
 	"context"
-	"github.com/OVantsevich/internetBankingCourseProjectGo/accountService/domain"
 	"github.com/OVantsevich/internetBankingCourseProjectGo/accountService/repository"
 	"github.com/golang-jwt/jwt/v4"
 	"time"
 )
 
 type CreateTransactionRequest struct {
-	AccountSenderName   string `json:"account_sender_name"`
-	AccountReceiverName string `json:"account_receiver_name"`
-	Amount              int    `json:"amount"`
-	Token               string `json:"token"`
+	AccountSenderNumber   string `json:"account_sender_number"`
+	AccountReceiverNumber string `json:"account_receiver_number"`
+	Amount                int    `json:"amount"`
+	Token                 string `json:"token"`
 }
 
 type GetAccountTransactionsRequest struct {
-	AccountName string `json:"account_name"`
-	Token       string `json:"token"`
+	AccountNumber string `json:"account_number"`
+	Token         string `json:"token"`
 }
 
 type GetAccountTransactionsResponse struct {
@@ -29,35 +28,13 @@ type GetAccountTransactionsResponse struct {
 }
 
 func CreateTransaction(ctx context.Context, request *CreateTransactionRequest) (string, error) {
-	if str, err := ValidAccountName(request.AccountSenderName, "sender"); err != nil {
-		return str, err
-	}
-	if str, err := ValidAccountName(request.AccountReceiverName, "receiver"); err != nil {
-		return str, err
-	}
-
 	claims := jwt.MapClaims{}
 	str, err := ParseToken(request.Token, &claims)
 	if err != nil {
 		return str, err
 	}
 
-	user, str, err := repository.GetUserByLogin(ctx, claims["login"].(string))
-	if err != nil {
-		return str, nil
-	}
-
-	accountSender, str, err := repository.GetUserAccountByAccountName(ctx, user.ID, request.AccountSenderName)
-	if accountSender == nil {
-		return str, err
-	}
-	accountReceiver, str, err := repository.GetUserAccountByAccountName(ctx, user.ID, request.AccountReceiverName)
-	if accountReceiver == nil {
-		return str, err
-	}
-
-	return repository.CreateTransaction(ctx, &domain.Transaction{
-		AccountSenderId: accountSender.ID, AccountReceiverId: accountReceiver.ID, Amount: request.Amount})
+	return repository.CreateTransaction(ctx, request.Amount, request.AccountSenderNumber, request.AccountReceiverNumber)
 }
 
 func GetAccountTransactions(ctx context.Context, request *GetAccountTransactionsRequest) ([]GetAccountTransactionsResponse, string, error) {
@@ -67,28 +44,19 @@ func GetAccountTransactions(ctx context.Context, request *GetAccountTransactions
 		return nil, str, err
 	}
 
-	user, str, err := repository.GetUserByLogin(ctx, claims["login"].(string))
-	if err != nil {
-		return nil, str, err
-	}
-
-	account, str, err := repository.GetUserAccountByAccountName(ctx, user.ID, request.AccountName)
-	if account == nil {
-		return nil, str, err
-	}
-
-	senderNames, receiverNames, transaction, str, err := repository.GetAccountTransactions(ctx, account.ID)
+	senderNumbers, receiverNumber, transaction, str, err := repository.GetAccountTransactions(ctx, claims["login"].(string), request.AccountNumber)
 
 	var response []GetAccountTransactionsResponse
-	for i := range transaction {
-		response = append(response, GetAccountTransactionsResponse{
-			AccountSenderName:   senderNames[i],
-			AccountReceiverName: receiverNames[i],
-			Amount:              transaction[i].Amount,
-			CreationDate:        transaction[i].CreationDate,
-			IsCompleted:         transaction[i].IsCompleted,
-		})
+	if err == nil {
+		for i := range transaction {
+			response = append(response, GetAccountTransactionsResponse{
+				AccountSenderName:   senderNumbers[i],
+				AccountReceiverName: receiverNumber[i],
+				Amount:              transaction[i].Amount,
+				CreationDate:        transaction[i].CreationDate,
+			})
+		}
 	}
 
-	return response, "", nil
+	return response, str, err
 }

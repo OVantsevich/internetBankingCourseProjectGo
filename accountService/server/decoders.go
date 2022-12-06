@@ -32,6 +32,6 @@ func DecodeCreateTransactionRequest(_ context.Context, r *http.Request) (interfa
 
 func DecodeGetAccountTransactionsRequest(_ context.Context, r *http.Request) (interface{}, error) {
 	token := r.Header.Get("Authorization")
-	name := r.Header.Get("Account-Name")
-	return services.GetAccountTransactionsRequest{Token: token, AccountName: name}, nil
+	number := r.Header.Get("Account-Number")
+	return services.GetAccountTransactionsRequest{Token: token, AccountNumber: number}, nil
 }

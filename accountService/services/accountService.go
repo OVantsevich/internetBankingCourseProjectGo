@@ -21,9 +21,10 @@ type GetUserAccountsRequest struct {
 }
 
 type GetUserAccountsResponse struct {
-	AccountName  string    `json:"account_name" sql:"type:varchar(40);default 'account'::character varying;not null"`
-	Amount       int       `json:"amount" sql:"type:integer;default 0;not null"`
-	CreationDate time.Time `json:"creation_date" sql:"type:timestamp(6);default CURRENT_TIMESTAMP(6);not null"`
+	AccountName   string    `json:"account_name" sql:"type:varchar(40);default 'account'::character varying;not null"`
+	Amount        int       `json:"amount" sql:"type:integer;default 0;not null"`
+	AccountNumber string    `json:"account_number" sql:"type:bigint;not null"`
+	CreationDate  time.Time `json:"creation_date" sql:"type:timestamp(6);default CURRENT_TIMESTAMP(6);not null"`
 }
 
 func CreateAccount(ctx context.Context, request *CreateAccountRequest) (string, error) {
@@ -37,27 +38,30 @@ func CreateAccount(ctx context.Context, request *CreateAccountRequest) (string, 
 		return str, err
 	}
 
-	user, str, err := repository.GetUserByLogin(ctx, claims["login"].(string))
-	if err != nil {
-		return str, nil
-	}
-
-	return repository.CreateAccount(ctx, &domain.Account{UserId: user.ID, AccountName: request.AccountName})
+	return repository.CreateAccount(ctx, &domain.Account{AccountName: request.AccountName}, claims["login"].(string))
 }
 
-func GetUserAccounts(ctx context.Context, request *GetUserAccountsRequest) ([]domain.Account, string, error) {
+func GetUserAccounts(ctx context.Context, request *GetUserAccountsRequest) ([]GetUserAccountsResponse, string, error) {
 	claims := jwt.MapClaims{}
 	str, err := ParseToken(request.Token, &claims)
 	if err != nil {
 		return nil, str, err
 	}
 
-	user, str, err := repository.GetUserByLogin(ctx, claims["login"].(string))
-	if err != nil {
-		return nil, str, nil
+	accounts, str, err := repository.GetUserAccounts(ctx, claims["login"].(string))
+	var response []GetUserAccountsResponse
+	if accounts != nil {
+		for _, account := range accounts {
+			response = append(response, GetUserAccountsResponse{
+				AccountName:   account.AccountName,
+				Amount:        account.Amount,
+				AccountNumber: account.AccountNumber,
+				CreationDate:  account.CreationDate,
+			})
+		}
 	}
 
-	return repository.GetUserAccounts(ctx, user.ID)
+	return response, str, err
 }
 
 func ValidAccountName(name string, filedName string) (string, error) {

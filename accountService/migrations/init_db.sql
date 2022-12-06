@@ -27,6 +27,7 @@ create table if not exists accounts
         constraint accounts_user_id_fk
             references users,
     account_name      varchar(40)  default 'account'::character varying not null,
+    account_number    bigint                                            not null,
     amount            integer      default 0                            not null,
     is_deleted        boolean      default false                        not null,
     creation_date     timestamp(6) default CURRENT_TIMESTAMP(6)         not null,
@@ -41,6 +42,9 @@ create unique index if not exists account_id_uindex
 
 create index if not exists accounts_is_deleted_index
     on accounts (is_deleted);
+
+create unique index if not exists account_account_number_uindex
+    on accounts (account_number);
 
 create unique index if not exists account_user_id_account_name_uindex
     on accounts (user_id, account_name);
@@ -204,13 +208,14 @@ create index if not exists l_transaction_types_transactions_is_deleted_index
 CREATE OR REPLACE FUNCTION fun_updateaccountamount() RETURNS TRIGGER AS
 $BODY$
 BEGIN
-    insert into l_transaction_types_transactions (transaction_type_id, transaction_id)
-    select (select id from transaction_types where transaction_type_name = 'failed_transaction'), new.id
-    where not exists(select 1 from accounts where new.account_sender_id = id and amount >= new.amount);
-    update transactions
-    set is_completed = false
-    where new.id = id
-      and not exists(select 1 from accounts where new.account_sender_id = id and amount >= new.amount);
+    if (not exists(select 1 from accounts where new.account_sender_id = id and amount >= new.amount)) then
+        insert into l_transaction_types_transactions (transaction_type_id, transaction_id)
+        select (select id from transaction_types where transaction_type_name = 'failed_transaction'), new.id;
+        update transactions
+        set is_completed = false
+        where new.id = id;
+        raise exception 'Insufficient funds on account.';
+    end if;
     update accounts
     set amount = amount + new.amount
     where new.account_receiver_id = id

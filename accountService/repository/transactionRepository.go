@@ -8,50 +8,45 @@ import (
 	"strconv"
 )
 
-func CreateTransaction(ctx context.Context, transaction *domain.Transaction) (string, error) {
+func CreateTransaction(ctx context.Context, amount int, accountSenderNumber, accountReceiverNumber string) (string, error) {
 
 	if err := Pool(ctx); err != nil {
 		return "something went wrong", err
 	}
 
 	var id int
-	row := pool.QueryRow(ctx, "insert into transactions (account_sender_id, account_receiver_id, amount) values ($1, $2, $3) returning id",
-		transaction.AccountSenderId, transaction.AccountReceiverId, transaction.Amount)
-	if err := row.Scan(&id); err != nil {
+	if err := pool.QueryRow(ctx, "insert into transactions (account_sender_id, account_receiver_id, amount) "+
+		"select (select id from accounts where account_number = $1 and is_deleted = false), "+
+		"(select id from accounts where account_number = $2 and is_deleted = false), "+
+		"$3 "+
+		"returning id ",
+		accountSenderNumber, accountReceiverNumber, amount).Scan(&id); err != nil {
 		log.Errorf("database error with create transaction: %v", err)
-		return "something went wrong", err
+		return "Insufficient funds.", err
 	}
 
-	var isCompleted bool
-	if err := pool.QueryRow(ctx, "select is_completed from transactions where id=$1 and is_deleted=false", id).Scan(
-		&isCompleted); err != nil {
-		log.Errorf("database error with create transaction: %v", err)
-		return "something went wrong", err
-	}
-
-	if isCompleted {
-		return "Transaction amount is: " + strconv.Itoa(transaction.Amount), nil
-	}
-	var amount int
-	if err := pool.QueryRow(ctx, "select amount from accounts where id=$1 and is_deleted=false", transaction.AccountSenderId).Scan(
-		&amount); err != nil {
-		log.Errorf("database error with create transaction: %v", err)
-		return "something went wrong", err
-	}
-	return "Insufficient funds. Current amount is: " + strconv.Itoa(amount), nil
+	return "Transaction amount is: " + strconv.Itoa(amount), nil
 }
 
-func GetAccountTransactions(ctx context.Context, accountId int) ([]string, []string, []domain.Transaction, string, error) {
+func GetAccountTransactions(ctx context.Context, login, accountNumber string) ([]string, []string, []domain.Transaction, string, error) {
 
 	if err := Pool(ctx); err != nil {
 		return nil, nil, nil, "something went wrong", err
 	}
 
-	rows, err := pool.Query(ctx, "select ("+
-		"select account_name from accounts where accounts.id = t.account_sender_id) sender_name,"+
-		"(select account_name from accounts where accounts.id = t.account_receiver_id) receiver_name,"+
-		"t.amount, t.is_completed, t.creation_date "+
-		"from transactions t where t.account_receiver_id = $1 or t.account_sender_id = $2", accountId, accountId)
+	rows, err := pool.Query(ctx, "select (select account_number from accounts where accounts.id = t.account_sender_id)   sender_number, "+
+		"(select account_number from accounts where accounts.id = t.account_receiver_id) receiver_number, "+
+		"t.amount, "+
+		"t.creation_date "+
+		"from transactions t "+
+		"where exists(select 1 "+
+		"from accounts "+
+		"where user_id = (select id from users where user_login = $1 and is_deleted = false) "+
+		"and account_number = $2 "+
+		"and is_deleted = false) "+
+		"and (t.account_receiver_id = (select id from accounts where account_number = $3 and accounts.is_deleted = false) "+
+		"or t.account_sender_id = (select id from accounts where account_number = $4 and accounts.is_deleted = false)) "+
+		"and is_deleted = false", login, accountNumber, accountNumber, accountNumber)
 	defer rows.Close()
 	if err != nil {
 		log.Errorf("database error with create user: %v", err)
@@ -62,19 +57,19 @@ func GetAccountTransactions(ctx context.Context, accountId int) ([]string, []str
 	}
 
 	var transactions []domain.Transaction
-	var senderNames []string
-	var receiverNames []string
+	var senderNumbers []string
+	var receiverNumbers []string
 	var i = 0
 	for rows.Next() {
 		transactions = append(transactions, domain.Transaction{})
-		senderNames = append(senderNames, "")
-		receiverNames = append(receiverNames, "")
-		err = rows.Scan(&senderNames[i], &receiverNames[i], &transactions[i].Amount, &transactions[i].IsCompleted, &transactions[i].CreationDate)
+		senderNumbers = append(senderNumbers, "")
+		receiverNumbers = append(receiverNumbers, "")
+		err = rows.Scan(&senderNumbers[i], &receiverNumbers[i], &transactions[i].Amount, &transactions[i].CreationDate)
 		if err != nil {
 			log.Errorf("database error with execution from rows: %v", err)
 			return nil, nil, nil, "something went wrong", err
 		}
 		i++
 	}
-	return senderNames, receiverNames, transactions, "", nil
+	return senderNumbers, receiverNumbers, transactions, "", nil
 }
