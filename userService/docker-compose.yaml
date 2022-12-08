@@ -21,7 +21,9 @@ services:
     image: nats:latest
     ports:
       - "4222:4222"
-    command: --name nats --js
+    command:
+      -name nats 
+      -js
 
   userservice:
     image: ovantsevich/userservice:latest
