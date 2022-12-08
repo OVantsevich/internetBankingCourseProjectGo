@@ -17,6 +17,13 @@ services:
       retries: 5
       start_period: 10s
     restart: unless-stopped
+  nats:
+    image: nats:latest
+    ports:
+      - "4222:4222"
+    command:
+      -name nats 
+      -js
   userservice:
     image: ovantsevich/userservice:latest
     ports:
