@@ -18,7 +18,7 @@ const (
 	SubjectNameUserUpdated = "USERS.userUpdated"
 )
 
-var jetStream nats.JetStreamContext = nil
+var JetStream nats.JetStreamContext = nil
 
 type UserForAccounts struct {
 	UserLogin string `json:"user_login" sql:"type:varchar(50);not null"`
@@ -28,14 +28,14 @@ type UserForAccounts struct {
 }
 
 func JetStreamInit() error {
-	if jetStream == nil {
+	if JetStream == nil {
 		nc, err := nats.Connect(domain.Config.NatsUrl)
 		if err != nil {
 			log.Errorf("jetstream init: %v", err)
 			return err
 		}
 
-		jetStream, err = nc.JetStream(nats.PublishAsyncMaxPending(256))
+		JetStream, err = nc.JetStream(nats.PublishAsyncMaxPending(256))
 		if err != nil {
 			log.Errorf("jetstream init: %v", err)
 			return err
@@ -51,12 +51,12 @@ func JetStreamInit() error {
 }
 
 func CreateStream() error {
-	stream, _ := jetStream.StreamInfo(StreamName)
+	stream, _ := JetStream.StreamInfo(StreamName)
 
 	if stream == nil {
 		log.Printf("creating stream: %v", StreamName)
 
-		_, err := jetStream.AddStream(&nats.StreamConfig{
+		_, err := JetStream.AddStream(&nats.StreamConfig{
 			Name:      StreamName,
 			Subjects:  []string{StreamSubjects},
 			Retention: nats.InterestPolicy,
@@ -80,7 +80,7 @@ func CreatingUser(user *domain.User) error {
 		return err
 	}
 
-	_, err = jetStream.Publish(SubjectNameUserCreated, createdUser)
+	_, err = JetStream.Publish(SubjectNameUserCreated, createdUser)
 	if err != nil {
 		log.Errorf("creating users: %v", err)
 		return err
@@ -100,7 +100,7 @@ func UpdatingUser(user *domain.User) error {
 		return err
 	}
 
-	_, err = jetStream.Publish(SubjectNameUserUpdated, updatedUser)
+	_, err = JetStream.Publish(SubjectNameUserUpdated, updatedUser)
 	if err != nil {
 		log.Errorf("updating users: %v", err)
 		return err
@@ -117,7 +117,7 @@ func DeletingUser(login string) error {
 		return err
 	}
 
-	_, err = jetStream.Publish(SubjectNameUserDeleted, deletedUser)
+	_, err = JetStream.Publish(SubjectNameUserDeleted, deletedUser)
 	if err != nil {
 		log.Errorf("deleting users: %v", err)
 		return err

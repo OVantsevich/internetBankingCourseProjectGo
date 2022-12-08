@@ -24,6 +24,10 @@ services:
     environment:
       - POSTGRES_DB_URL=postgres://postgres:postgres@host.docker.internal:5432/userService?sslmode=disable
       - JWT_KEY=874967EC3EA3490F8F2EF6478B72A756
+      - NATS_URL=nats://host.docker.internal:4222
+      - GMAIL_PASSWORD=xpqaovslkvtfpefb
+      - GMAIL_ADDRESS=InternetBankingOV@gmail.com
+      - URL=http://localhost:12345
     depends_on:
       - postgres
     extra_hosts:

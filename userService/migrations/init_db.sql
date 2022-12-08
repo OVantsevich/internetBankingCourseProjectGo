@@ -8,6 +8,8 @@ create table users
     user_password     varchar(200)                              not null,
     user_name         varchar(50)                               not null,
     surname           varchar(50)                               not null,
+    is_verified       varchar(100) default ''                   not null,
+    verification_date timestamp(6) default CURRENT_TIMESTAMP(6) not null,
     is_deleted        boolean      default false                not null,
     creation_date     timestamp(6) default CURRENT_TIMESTAMP(6) not null,
     modification_date timestamp(6) default CURRENT_TIMESTAMP(6) not null

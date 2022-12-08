@@ -21,7 +21,8 @@ func MakeHTTPHandler() http.Handler {
 		httptransport.ServerErrorEncoder(ErrorEncoder),
 	}
 
-	// POST    /createUser              creat user
+	// POST    /createUser              create user
+	// POST    /verification            verifying user by email
 	// GET     /signIn                  signIn user, return token
 	// PUT     /updateUser              update user
 	// DELETE  /deleteUser  			remove user
@@ -29,6 +30,11 @@ func MakeHTTPHandler() http.Handler {
 	r.Methods("POST").Path("/createUser").Handler(httptransport.NewServer(
 		e.RegisterUserEndpoint,
 		DecodeCreateUserRequest,
+		EncodeResponse,
+	))
+	r.Methods("GET").Path("/verification").Handler(httptransport.NewServer(
+		e.VerificationEndpoint,
+		DecodeVerificationRequest,
 		EncodeResponse,
 	))
 	r.Methods("GET").Path("/signIn").Handler(httptransport.NewServer(

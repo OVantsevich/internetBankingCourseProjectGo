@@ -16,6 +16,12 @@ func DecodeCreateUserRequest(_ context.Context, r *http.Request) (interface{}, e
 	return request, nil
 }
 
+func DecodeVerificationRequest(_ context.Context, r *http.Request) (interface{}, error) {
+	var request services.VerificationRequest
+	request.Verification = r.URL.Query().Get("verification")
+	return request, nil
+}
+
 func DecodeSignInRequest(_ context.Context, r *http.Request) (interface{}, error) {
 	var request services.SignInRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {

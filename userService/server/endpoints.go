@@ -9,6 +9,7 @@ import (
 
 type Endpoints struct {
 	RegisterUserEndpoint endpoint.Endpoint
+	VerificationEndpoint endpoint.Endpoint
 	SignInEndpoint       endpoint.Endpoint
 	UpdateUserEndpoint   endpoint.Endpoint
 	DeleteUserEndpoint   endpoint.Endpoint
@@ -17,6 +18,7 @@ type Endpoints struct {
 func MakeServerEndpoints() Endpoints {
 	return Endpoints{
 		RegisterUserEndpoint: MakeRegisterUserEndpoint(),
+		VerificationEndpoint: MakeVerificationEndpoint(),
 		SignInEndpoint:       MakeSignInEndpoint(),
 		UpdateUserEndpoint:   MakeUpdateUserEndpoint(),
 		DeleteUserEndpoint:   MakeDeleteUserEndpoint(),
@@ -27,6 +29,14 @@ func MakeRegisterUserEndpoint() endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(domain.User)
 		response, _ := services.CreateUser(ctx, &req)
+		return response, nil
+	}
+}
+
+func MakeVerificationEndpoint() endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (interface{}, error) {
+		req := request.(services.VerificationRequest)
+		response, _ := services.Verification(ctx, &req)
 		return response, nil
 	}
 }

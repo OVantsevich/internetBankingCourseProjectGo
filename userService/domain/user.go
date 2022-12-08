@@ -12,6 +12,8 @@ type User struct {
 	UserName         string    `json:"user_name" sql:"type:varchar(50);not null"`
 	Surname          string    `json:"surname" sql:"type:varchar(50);not null"`
 	IsDeleted        bool      `json:"is_deleted" sql:"type:boolean;default false;not null"`
+	IsVerified       string    `json:"is_verified" sql:"type:varchar(100);default false;not null"`
+	VerificationDate time.Time `json:"verification" sql:"type:timestamp(6);default CURRENT_TIMESTAMP(6);not null"`
 	CreationDate     time.Time `json:"creation_date" sql:"type:timestamp(6);default CURRENT_TIMESTAMP(6);not null"`
 	ModificationDate time.Time `json:"modification_date" sql:"type:timestamp(6);default CURRENT_TIMESTAMP(6);not null"`
 }
@@ -22,9 +24,6 @@ func (old *User) UpdateUser(new *User) {
 	}
 	if new.Surname != "" && old.Surname != new.Surname {
 		old.Surname = new.Surname
-	}
-	if new.UserEmail != "" && old.UserEmail != new.UserEmail {
-		old.UserEmail = new.UserEmail
 	}
 	if new.UserPassword != "" && old.UserPassword != new.UserPassword {
 		old.UserPassword = new.UserPassword

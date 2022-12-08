@@ -7,10 +7,12 @@ import (
 	"github.com/OVantsevich/internetBankingCourseProjectGo/userService/eventStreaming"
 	"github.com/OVantsevich/internetBankingCourseProjectGo/userService/repository"
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/google/uuid"
 	"github.com/labstack/gommon/log"
 	passwordvalidator "github.com/wagslane/go-password-validator"
 	"golang.org/x/crypto/bcrypt"
 	"net/mail"
+	"net/smtp"
 	"strings"
 	"time"
 	"unicode"
@@ -19,6 +21,10 @@ import (
 type SignInRequest struct {
 	UserLogin    string `json:"user_login" sql:"type:varchar(50);not null"`
 	UserPassword string `json:"user_password" sql:"type:varchar(50);not null"`
+}
+
+type VerificationRequest struct {
+	Verification string `json:"verification"`
 }
 
 type UpdateUserRequest struct {
@@ -33,35 +39,52 @@ type DeleteUserRequest struct {
 	Token string `json:"token"`
 }
 
-func CreateUser(ctx context.Context, user *domain.User) (string, error) {
+func CreateUser(ctx context.Context, request *domain.User) (string, error) {
 
-	if user == nil {
+	if request == nil {
 		log.Errorf("creating user, services: %v", fmt.Errorf("user is nil"))
 		return "something went wrong", fmt.Errorf("user is nil")
 	}
 
-	if str, err := ValidLogin(user.UserLogin); err != nil {
+	if str, err := ValidLogin(request.UserLogin); err != nil {
 		return str, err
 	}
-	if str, err := ValidPassword(user.UserPassword); err != nil {
+	if str, err := ValidPassword(request.UserPassword); err != nil {
 		return str, err
 	}
-	if str, err := ValidEmail(user.UserEmail); err != nil {
+	if str, err := ValidEmail(request.UserEmail); err != nil {
 		return str, err
 	}
-	if str, err := ValidName(user.UserName, "name"); err != nil {
+	if str, err := ValidName(request.UserName, "name"); err != nil {
 		return str, err
 	}
-	if str, err := ValidName(user.Surname, "surname"); err != nil {
+	if str, err := ValidName(request.Surname, "surname"); err != nil {
 		return str, err
 	}
 
 	var err error
-	if user.UserPassword, err = HashingPassword(user.UserPassword); err != nil {
-		return user.UserPassword, err
+	if request.UserPassword, err = HashingPassword(request.UserPassword); err != nil {
+		return request.UserPassword, err
 	}
 
-	str, err := repository.CreateUser(ctx, user)
+	key := uuid.New().String()
+
+	str, err := repository.CreateUser(ctx, request, key)
+	if err == nil {
+		SendVerificationEmail(request.UserEmail, key)
+	}
+
+	return str, err
+}
+
+func Verification(ctx context.Context, request *VerificationRequest) (string, error) {
+
+	if request == nil {
+		log.Errorf("signing user, services: %v", fmt.Errorf("request is nil"))
+		return "something went wrong", fmt.Errorf("request is nil")
+	}
+
+	user, str, err := repository.Verify(ctx, request.Verification)
 	if err == nil {
 		if errLocal := eventStreaming.CreatingUser(user); errLocal != nil {
 			log.Errorf("creating user, services, event streaming down: %v", errLocal)
@@ -69,7 +92,7 @@ func CreateUser(ctx context.Context, user *domain.User) (string, error) {
 		}
 	}
 
-	return str, err
+	return str, nil
 }
 
 func SignIn(ctx context.Context, request *SignInRequest) (string, error) {
@@ -126,9 +149,6 @@ func UpdateUser(ctx context.Context, request *UpdateUserRequest) (string, error)
 	if str, err := ValidPassword(request.UserPassword); request.UserPassword != "" && err != nil {
 		return str, err
 	}
-	if str, err := ValidEmail(request.UserEmail); request.UserEmail != "" && err != nil {
-		return str, err
-	}
 
 	if request.UserPassword, err = HashingPassword(request.UserPassword); err != nil {
 		return request.UserPassword, err
@@ -139,7 +159,7 @@ func UpdateUser(ctx context.Context, request *UpdateUserRequest) (string, error)
 		return str, err
 	}
 
-	user.UpdateUser(&domain.User{UserName: request.UserName, UserEmail: request.UserEmail,
+	user.UpdateUser(&domain.User{UserName: request.UserName,
 		Surname: request.Surname, UserPassword: request.UserPassword})
 
 	user.ModificationDate = time.Now()
@@ -243,4 +263,29 @@ func ParseToken(val string, claims *jwt.MapClaims) (string, error) {
 
 func Key(_ *jwt.Token) (interface{}, error) {
 	return []byte(domain.Config.JwtKey), nil
+}
+
+func SendVerificationEmail(to, key string) {
+	from := domain.Config.GmailAddress
+	pass := domain.Config.GmailPassword
+	url := domain.Config.Url
+
+	verificationHref := url + "/verification?verification=" + key
+
+	message := "From: Internet Banking OV" + "\n" +
+		"To: " + to + "\n" +
+		"Subject: verification email" + "\n\n" +
+		verificationHref
+
+	emailAuth := smtp.PlainAuth("", from, pass, "smtp.gmail.com")
+
+	err := smtp.SendMail("smtp.gmail.com:587", emailAuth,
+		from, []string{to}, []byte(message))
+
+	if err != nil {
+		log.Printf("smtp error: %s", err)
+		return
+	}
+
+	log.Print("verification email sent to " + to)
 }
